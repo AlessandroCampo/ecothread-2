@@ -1,4 +1,4 @@
-<!-- resources/js/Components/EventCard.vue -->
+<!-- resources/js/componentsEventCard.vue -->
 <template>
   <v-card 
     :variant="expanded ? 'flat' : 'outlined'" 

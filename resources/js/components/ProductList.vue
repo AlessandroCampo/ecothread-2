@@ -49,7 +49,7 @@
 
 <script setup>
 
-import ProductForm from '@/Components/ProductForm.vue'
+import ProductForm from '@/componentsProductForm.vue'
 import { router } from '@inertiajs/vue3'
 
 

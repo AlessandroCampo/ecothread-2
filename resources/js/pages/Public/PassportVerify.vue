@@ -272,7 +272,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useSolana } from '@/composables/useSolana'
-import EventCard from '@/Components/EventCard.vue'
+import EventCard from '@/componentsEventCard.vue'
 import QRCode from 'qrcode'
 import type { Event, Product, Passport, OnChainEvent } from '@/types'
 

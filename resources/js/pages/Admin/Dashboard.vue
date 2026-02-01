@@ -131,12 +131,12 @@
 import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import api from '@/lib/axios'
-import ProductList from '@/Components/ProductList.vue'
-import EventForm from '@/Components/EventForm.vue'
+import ProductList from '@/components/ProductList.vue'
+import EventForm from '@/components/EventForm.vue'
 import SolanaExplorerLink from '@/components/SolanaExplorerLink.vue'
 import Layout from '../Layout.vue'
 import PassportRequestButton from '@/components/PassportRequestButton.vue'
-import ProductForm from '@/Components/ProductForm.vue'
+import ProductForm from '@/components/ProductForm.vue'
 import EventCard from '@/components/EventCard.vue'
 
 
