@@ -90,4 +90,3 @@ Route::post('/admin/products/{productId}/upload-document', [EventController::cla
 
 });
 
-require __DIR__.'/settings.php';
