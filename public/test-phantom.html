@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Phantom</title>
+</head>
+<body>
+  <h1>Test Phantom</h1>
+  <button onclick="testConnect()">Connetti Phantom</button>
+  <p id="result"></p>
+
+  <script>
+    async function testConnect() {
+      try {
+        const resp = await window.phantom.solana.connect()
+        document.getElementById('result').innerText = 'Connesso: ' + resp.publicKey.toString()
+      } catch (e) {
+        document.getElementById('result').innerText = 'Errore: ' + e.message + ' (code: ' + e.code + ')'
+      }
+    }
+  </script>
+</body>
+</html>

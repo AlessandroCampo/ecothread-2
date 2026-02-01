@@ -1,0 +1,346 @@
+{
+  "address": "DNyAQsgjPLAp1jrYFyeo4EWQT9myWoBcG58q9hncCyFB",
+  "metadata": {
+    "name": "ecothread",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "add_event",
+      "docs": [
+        "Adds an event to an existing product's history."
+      ],
+      "discriminator": [
+        195,
+        236,
+        186,
+        9,
+        20,
+        116,
+        142,
+        22
+      ],
+      "accounts": [
+        {
+          "name": "product",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  100,
+                  117,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "product.product_id",
+                "account": "Product"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  118,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "product"
+              },
+              {
+                "kind": "account",
+                "path": "product.event_count",
+                "account": "Product"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registrant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "event_type",
+          "type": "string"
+        },
+        {
+          "name": "document_hash",
+          "type": "string"
+        },
+        {
+          "name": "document_uri",
+          "type": "string"
+        },
+        {
+          "name": "metadata_hash",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "create_product",
+      "docs": [
+        "Creates a new product in the traceability system."
+      ],
+      "discriminator": [
+        183,
+        155,
+        202,
+        119,
+        43,
+        114,
+        174,
+        225
+      ],
+      "accounts": [
+        {
+          "name": "product",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  100,
+                  117,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "product_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "product_id",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Event",
+      "discriminator": [
+        125,
+        192,
+        125,
+        158,
+        9,
+        115,
+        152,
+        233
+      ]
+    },
+    {
+      "name": "Product",
+      "discriminator": [
+        102,
+        76,
+        55,
+        251,
+        38,
+        73,
+        224,
+        229
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "ProductIdEmpty",
+      "msg": "Product ID cannot be empty"
+    },
+    {
+      "code": 6001,
+      "name": "ProductIdTooLong",
+      "msg": "Product ID cannot exceed 32 characters"
+    },
+    {
+      "code": 6002,
+      "name": "EventTypeEmpty",
+      "msg": "Event type cannot be empty"
+    },
+    {
+      "code": 6003,
+      "name": "EventTypeTooLong",
+      "msg": "Event type cannot exceed 32 characters"
+    },
+    {
+      "code": 6004,
+      "name": "DocumentHashTooLong",
+      "msg": "Document hash cannot exceed 64 characters"
+    },
+    {
+      "code": 6005,
+      "name": "DocumentUriTooLong",
+      "msg": "Document URI cannot exceed 128 characters"
+    },
+    {
+      "code": 6006,
+      "name": "MetadataHashTooLong",
+      "msg": "Metadata hash cannot exceed 64 characters"
+    }
+  ],
+  "types": [
+    {
+      "name": "Event",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "product",
+            "docs": [
+              "Reference to the product this event belongs to"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "event_index",
+            "docs": [
+              "Progressive event index (0, 1, 2, ...)"
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "event_type",
+            "docs": [
+              "Event type (e.g., \"ORIGIN\", \"PRODUCTION\", \"TRANSPORT\")"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "registrant",
+            "docs": [
+              "Who registered this event"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp of registration"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "document_hash",
+            "docs": [
+              "SHA-256 hash of the associated document (hex)"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "document_uri",
+            "docs": [
+              "Document URI (IPFS, Arweave, URL, etc.)"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "metadata_hash",
+            "docs": [
+              "SHA-256 hash of the metadata JSON (hex)"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Product",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "product_id",
+            "docs": [
+              "Unique product identifier (e.g., \"ECO-001\", \"TSHIRT-BIO-2024\")"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "creator",
+            "docs": [
+              "Public key of who registered the product"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "created_at",
+            "docs": [
+              "Unix timestamp of creation"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "event_count",
+            "docs": [
+              "Number of registered events (used to generate event PDAs)"
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}

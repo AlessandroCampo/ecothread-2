@@ -1,0 +1,41 @@
+/* resources/css/app.css */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playwrite+IN+Guides&display=swap');
+
+:root {
+  --v-font-family-base: 'Montserrat', system-ui;
+}
+
+body, .v-application {
+  font-family: 'Montserrat', system-ui !important;
+}
+
+.v-btn, .v-card-title, h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', system-ui !important;
+}
+
+/* Scrollbar styling globale */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(116, 140, 112, 0.4); /* primary con opacity */
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(116, 140, 112, 0.6);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(116, 140, 112, 0.4) rgba(0, 0, 0, 0.05);
+}
