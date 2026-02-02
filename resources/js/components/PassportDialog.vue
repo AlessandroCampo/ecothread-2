@@ -110,6 +110,7 @@
         </v-btn>
       </v-card-actions>
     </v-card>
+    <!---->
 
     <!-- Snackbar conferma copia -->
     <v-snackbar v-model="showCopySnackbar" :timeout="2000" color="success">
