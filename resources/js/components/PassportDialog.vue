@@ -385,35 +385,8 @@ async function generateBadge(): Promise<HTMLCanvasElement> {
 async function downloadQR() {
   if (!verificationUrl.value) return
 
-  const canvas = document.createElement('canvas')
-  await QRCode.toCanvas(canvas, verificationUrl.value, {
-    width: 1024, // Alta risoluzione
-    margin: 2,
-    color: {
-      dark: '#1B5E20',
-      light: '#FFFFFF',
-    },
-    errorCorrectionLevel: 'H',
-  })
-
-  // Aggiungi logo al centro
-  const ctx = canvas.getContext('2d')!
-  try {
-    const logo = await loadImage(logoSrc)
-    const logoSize = canvas.width * 0.2
-    const logoX = (canvas.width - logoSize) / 2
-    const logoY = (canvas.height - logoSize) / 2
-    
-    // Sfondo bianco per il logo
-    ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(logoX - 10, logoY - 10, logoSize + 20, logoSize + 20)
-    
-    ctx.drawImage(logo, logoX, logoY, logoSize, logoSize)
-  } catch {
-    // Continua senza logo
-  }
-
-  downloadCanvas(canvas, `qr-${passport.value?.passport_number}.png`)
+  const qrCanvas = await generateQRWithLogo(verificationUrl.value, 1024)
+  downloadCanvas(qrCanvas, `qr-${passport.value?.passport_number}.png`)
 }
 
 async function downloadBadge() {
