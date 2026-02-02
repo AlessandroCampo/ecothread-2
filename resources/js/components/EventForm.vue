@@ -1,5 +1,5 @@
 <template>
-  <v-card>
+  <v-card class="pb-0">
     <v-card-title class="d-flex align-center">
       <v-icon class="mr-2">mdi-timeline-plus</v-icon>
       Nuovo Evento
@@ -15,7 +15,7 @@
       </v-chip>
     </v-card-title>
 
-    <v-card-text>
+    <v-card-text >
        <wallet-alert/>
         <!-- Product ID (readonly se passato come prop) -->
 
@@ -255,7 +255,7 @@
 
     </v-card-text>
 
-   <v-card-actions class="d-flex flex-column flex-md-row justify-md-end ga-2">
+   <v-card-actions class="d-flex flex-column flex-md-row justify-md-end ga-2 mt-0">
   <template v-if="!result">
     <v-btn 
       @click="$emit('cancel')" 

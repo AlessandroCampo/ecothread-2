@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EventType;
 use App\Services\PassportVerificationService;
 use App\Services\PinataService;
 use Illuminate\Database\Eloquent\Model;
@@ -37,7 +38,7 @@ class Event extends Model
            'metadata' => 'array',
     ];
 
-    protected $appends = ['document_gateway_url'];
+    protected $appends = ['document_gateway_url', 'event_type_label'];
 
 
     /**
@@ -60,6 +61,14 @@ class Event extends Model
                 $url =  $pvs->ipfsToGateway($this->document_uri);
 
                 return $url;
+            }
+    public function getEventTypeLabelAttribute(): ?string
+            {
+                if (!$this->event_type) {
+                    return null;
+                }
+
+                return EventType::tryFrom($this->event_type)?->label() ?? $this->event_type;
             }
 
     /**

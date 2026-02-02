@@ -1,7 +1,7 @@
 <!-- resources/js/componentsEventCard.vue -->
 <template>
   <v-card 
-    :variant="expanded ? 'flat' : 'outlined'" 
+    :variant="'flat'"
     :elevation="expanded ? 2 : 0"
     class="event-card"
     :class="{ 'event-card--expanded': expanded }"

@@ -142,12 +142,15 @@
               :dot-color="event.is_on_chain ? 'green' : 'orange'"
               size="small"
             >
-              <div class="font-weight-bold">{{ event.event_type }}</div>
+              <div class="font-weight-bold">{{ event.event_type_label || event.event_type }}</div>
               <div class="text-caption">{{ event.description }}</div>
               <div class="text-caption text-grey" v-if="event.document_hash">
                 Hash: {{ event.document_hash?.slice(0, 16) }}...
               </div>
-              <SolanaExplorerLink :pda-address="event.pda_address" size="small" class="mt-1">
+              <div  class="text-caption text-grey">
+                Timestamp: {{ event.timestamp }}
+              </div>
+              <SolanaExplorerLink :pda-address="event.pda_address" size="small" class="mt-1" block>
                 Verifica dati evento
               </SolanaExplorerLink>
               <div class="mt-2">
