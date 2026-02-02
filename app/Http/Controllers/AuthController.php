@@ -74,18 +74,28 @@ public function challenge(Request $request)
     private function base58Decode(string $input): string
     {
         $alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-        $base = strlen($alphabet);
-        
-        $num = gmp_init(0);
+        $base = '58';
+
+        $num = '0';
         for ($i = 0; $i < strlen($input); $i++) {
-            $num = gmp_add(gmp_mul($num, $base), strpos($alphabet, $input[$i]));
+            $num = bcadd(bcmul($num, $base), (string) strpos($alphabet, $input[$i]));
         }
-        
-        $hex = gmp_strval($num, 16);
+
+        $hex = '';
+        while (bccomp($num, '0') > 0) {
+            $remainder = bcmod($num, '16');
+            $hex = dechex((int) $remainder) . $hex;
+            $num = bcdiv($num, '16', 0);
+        }
+
         if (strlen($hex) % 2 !== 0) {
             $hex = '0' . $hex;
         }
-        
+
+        if ($hex === '') {
+            $hex = '00';
+        }
+
         return hex2bin($hex);
     }
 
