@@ -74,29 +74,28 @@ public function challenge(Request $request)
     private function base58Decode(string $input): string
     {
         $alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-        $base = '58';
+        $indexes = array_flip(str_split($alphabet));
 
-        $num = '0';
+        $bytes = [0];
         for ($i = 0; $i < strlen($input); $i++) {
-            $num = bcadd(bcmul($num, $base), (string) strpos($alphabet, $input[$i]));
+            $carry = $indexes[$input[$i]] ?? 0;
+            for ($j = count($bytes) - 1; $j >= 0; $j--) {
+                $carry += $bytes[$j] * 58;
+                $bytes[$j] = $carry % 256;
+                $carry = intdiv($carry, 256);
+            }
+            while ($carry > 0) {
+                array_unshift($bytes, $carry % 256);
+                $carry = intdiv($carry, 256);
+            }
         }
 
-        $hex = '';
-        while (bccomp($num, '0') > 0) {
-            $remainder = bcmod($num, '16');
-            $hex = dechex((int) $remainder) . $hex;
-            $num = bcdiv($num, '16', 0);
+        // Add leading zeros
+        for ($i = 0; $i < strlen($input) && $input[$i] === '1'; $i++) {
+            array_unshift($bytes, 0);
         }
 
-        if (strlen($hex) % 2 !== 0) {
-            $hex = '0' . $hex;
-        }
-
-        if ($hex === '') {
-            $hex = '00';
-        }
-
-        return hex2bin($hex);
+        return pack('C*', ...$bytes);
     }
 
     public function logout(Request $request)
