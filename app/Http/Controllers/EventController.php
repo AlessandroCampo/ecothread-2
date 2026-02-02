@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EventType;
 use App\Models\Event;
 use App\Models\Product;
 use App\Services\PinataService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class EventController extends Controller
 {
@@ -53,7 +55,7 @@ class EventController extends Controller
         $product = Product::findOrFail($productId);
 
         $validated = $request->validate([
-            'event_type' => 'required|string|exists:event_types,code',
+            'event_type' => ['required', 'string', Rule::in(EventType::values())],
             'trust_level' => 'nullable|string',
             'description' => 'nullable|string|max:1000',
             'document' => 'nullable|file|max:10240',

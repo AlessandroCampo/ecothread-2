@@ -13,8 +13,6 @@ class DatabaseSeeder extends Seeder
      */
    public function run(): void
 {
-    $this->call([
-        EventTypeSeeder::class,
-    ]);
+    // EventTypeSeeder non più necessario - i dati sono nell'enum PHP
 }
 }

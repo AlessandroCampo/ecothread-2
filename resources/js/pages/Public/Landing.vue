@@ -497,7 +497,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
 import QRCode from 'qrcode'
 import jsQR from 'jsqr'
@@ -614,12 +614,16 @@ async function startCamera() {
     mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' }
     })
-    
+
+    cameraActive.value = true
+
+    // Aspetta che Vue aggiorni il DOM (il video element è in v-if)
+    await nextTick()
+
     if (videoElement.value) {
       videoElement.value.srcObject = mediaStream
-      videoElement.value.play()
-      cameraActive.value = true
-      
+      await videoElement.value.play()
+
       // Start scanning
       scanInterval = window.setInterval(scanQRCode, 200)
     }
@@ -643,7 +647,7 @@ function stopCamera() {
 
 function scanQRCode() {
   if (!videoElement.value || !cameraActive.value) return
-  
+
   const video = videoElement.value
   if (video.readyState !== video.HAVE_ENOUGH_DATA) return
   
