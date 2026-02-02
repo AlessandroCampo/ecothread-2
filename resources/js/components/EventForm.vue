@@ -325,6 +325,10 @@ const props = defineProps({
     type: Number,
     default: 0
   },
+  initialEventType: {
+    type: String,
+    default: null
+  }
 })
 
 // ============================================
@@ -339,7 +343,7 @@ const documentUri = ref<string | null>(null)
 
 const form = ref({
   product_id: props.productId,
-  event_type: null as string | null,
+  event_type: props.initialEventType as string | null,
   trust_level: 'autodeclaration',
   description: '',
   document: null as File | null,

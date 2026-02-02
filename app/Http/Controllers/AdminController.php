@@ -10,23 +10,58 @@ use Inertia\Inertia;
 
 class AdminController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-        $products = Product::where('creator_wallet', Auth::user()->wallet_address)
-            ->with(['events', 'passport'])
-            ->latest()
-            ->get();
+        $query = Product::where('creator_wallet', Auth::user()->wallet_address)
+            ->with(['events', 'passport']);
 
+        // Filtro per stato on-chain
+        if ($request->filled('status')) {
+            $query->where('is_on_chain', $request->status === 'on-chain');
+        }
 
-        
+        // Filtro per tipo prodotto
+        if ($request->filled('product_type')) {
+            $query->where('product_type', $request->product_type);
+        }
+
+        // Ricerca per nome/id
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('id', 'like', "%{$search}%");
+            });
+        }
+
+        $products = $query->latest()->paginate(15)->through(function ($product) {
+            $product->passport_progress = $this->calculatePassportProgress($product);
+            return $product;
+        });
+
         return Inertia::render('Admin/Dashboard', [
             'products' => $products,
-             'productTypes' => collect(ProductType::cases())->map(fn($t) => [
-                        'value' => $t->value,
-                        'label' => $t->label(),
-                        'icon' => $t->icon(),
-                    ]),
+            'productTypes' => ProductType::toArray(),
+            'filters' => $request->only(['status', 'product_type', 'search']),
         ]);
+    }
+
+    private function calculatePassportProgress(Product $product): array
+    {
+        $required = ['ORIGIN', 'PRODUCTION', 'TRANSPORT', 'ENV_CLAIM'];
+        $events = $product->events->where('is_on_chain', true);
+
+        $completed = array_values(array_filter($required, fn($t) => $events->contains('event_type', $t)));
+        $missing = array_values(array_diff($required, $completed));
+
+        return [
+            'completed' => $completed,
+            'missing' => $missing,
+            'count' => count($completed),
+            'total' => count($required),
+            'eligible' => empty($missing) && $product->is_on_chain,
+            'has_passport' => $product->passport !== null,
+        ];
     }
 
     public function storeProduct(Request $request)

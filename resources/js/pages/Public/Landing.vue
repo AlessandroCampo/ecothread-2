@@ -670,7 +670,7 @@ function scanQRCode() {
 
 function handleQRResult(data: string) {
   // Controlla se è un URL di EcoThread
-  if (data.includes('/passport/') || data.includes('/product/')) {
+  if (data.includes('/passport/') || data.includes('/product/') || data.includes('verify')) {
     window.location.href = data
   } else {
     searchError.value = 'QR code non riconosciuto come prodotto EcoThread'

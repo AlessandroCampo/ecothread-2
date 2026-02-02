@@ -23,7 +23,7 @@ export function useSnack() {
   }
 
   function success(message: string, action?: SnackOptions['action']) {
-    show({ message, type: 'success', action, timeout: -1 })
+    show({ message, type: 'success', action, timeout: 4000 })
   }
 
   function error(message: string) {
