@@ -91,24 +91,26 @@
         </v-expand-transition>
       </v-card-text>
 
-      <v-card-actions class="pa-4 pt-0">
-        <v-btn
-          variant="text"
-          @click="showBadgePreview = !showBadgePreview"
-        >
-          {{ showBadgePreview ? 'Nascondi' : 'Mostra' }} anteprima badge
-        </v-btn>
-        <v-spacer />
-        <v-btn
-          color="primary"
-          variant="flat"
-          :href="verificationUrl"
-          target="_blank"
-        >
-          <v-icon start>mdi-open-in-new</v-icon>
-          Apri Pagina
-        </v-btn>
-      </v-card-actions>
+      <v-card-actions class="pa-4 pt-0 d-flex flex-column flex-md-row justify-md-end ga-2">
+  <v-btn
+    variant="flat"
+    @click="showBadgePreview = !showBadgePreview"
+    :block="mobile"
+    color="secondary"
+  >
+    {{ showBadgePreview ? 'Nascondi' : 'Mostra' }} anteprima badge
+  </v-btn>
+  <v-btn
+    color="primary"
+    variant="flat"
+    :href="verificationUrl"
+    target="_blank"
+    :block="mobile"
+  >
+    <v-icon start>mdi-open-in-new</v-icon>
+    Apri Pagina
+  </v-btn>
+</v-card-actions>
     </v-card>
     <!---->
 
@@ -123,7 +125,8 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import QRCode from 'qrcode'
 import { route } from 'ziggy-js'
-
+import { useDisplay } from 'vuetify/lib/composables/display.mjs'
+const {mobile} = useDisplay();
 // ============================================
 // Types
 // ============================================

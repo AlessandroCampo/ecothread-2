@@ -30,6 +30,7 @@ export interface Product {
   id: string
   name: string
   description?: string
+  url?: string
   product_type?: string
   collection_year?: number
   image_path?: string

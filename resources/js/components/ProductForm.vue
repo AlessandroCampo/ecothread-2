@@ -97,6 +97,18 @@
         :disabled="!isEditMode && !isWalletConnected"
       />
 
+      <!-- URL prodotto -->
+      <v-text-field
+        v-model="form.url"
+        label="URL E-commerce"
+        placeholder="https://esempio.com/prodotto"
+        variant="outlined"
+        prepend-inner-icon="mdi-link"
+        class="mb-3"
+        :error-messages="errors.url"
+        :disabled="!isEditMode && !isWalletConnected"
+      />
+
       <!-- Product Type -->
       <v-select
         v-model="form.product_type"
@@ -223,25 +235,31 @@
 
     </v-card-text>
 
-    <v-card-actions>
-      <v-spacer />
-      <v-btn @click="$emit('cancel')" variant="flat" :disabled="loading">
-        Annulla
-      </v-btn>
-      <v-btn
-        color="primary"
-        :loading="loading"
-        :disabled="!isFormValid"
-        @click="submit"
-        variant="flat"
-        width="200"
-      >
-        {{ isEditMode ? 'Salva Modifiche' : 'Crea Prodotto' }}
-        <template v-if="!isEditMode" #append>
-          <SolanaIcon />
-        </template>
-      </v-btn>
-    </v-card-actions>
+    <v-card-actions class="d-flex flex-column flex-md-row justify-md-end ga-2">
+  <v-btn 
+    @click="$emit('cancel')" 
+    variant="flat" 
+    color="error" 
+    :disabled="loading"
+    :block="mobile"
+  >
+    Annulla
+  </v-btn>
+  <v-btn
+    color="primary"
+    :loading="loading"
+    :disabled="!isFormValid"
+    @click="submit"
+    variant="flat"
+    :width="mobile ? undefined : 200"
+    :block="mobile"
+  >
+    {{ isEditMode ? 'Salva Modifiche' : 'Crea Prodotto' }}
+    <template v-if="!isEditMode" #append>
+      <SolanaIcon />
+    </template>
+  </v-btn>
+</v-card-actions>
   </v-card>
 </template>
 
@@ -254,6 +272,7 @@ import type { ProductType } from '@/composables/useEnum'
 import WalletAlert from './WalletAlert.vue'
 import SolanaIcon from './SolanaIcon.vue'
 import { useSnack } from '@/composables/useSnack'
+import { useDisplay } from 'vuetify/lib/composables/display.mjs'
 
 // ============================================
 // Types
@@ -262,10 +281,13 @@ interface Product {
   id: string
   name: string
   description?: string
+  url?: string
   product_type: string
   collection_year: number
   image_path?: string
 }
+
+const {mobile} = useDisplay();
 
 // ============================================
 // Props & Emits
@@ -309,6 +331,7 @@ const form = ref({
   id: '',
   name: '',
   description: '',
+  url: '',
   product_type: '',
   collection_year: currentYear,
   image: null as File | null,
@@ -364,6 +387,7 @@ watch(() => props.product, (product) => {
       id: product.id,
       name: product.name,
       description: product.description || '',
+      url: product.url || '',
       product_type: product.product_type,
       collection_year: product.collection_year,
       image: null,
@@ -438,6 +462,7 @@ async function submitUpdate() {
     const formData = new FormData()
     formData.append('name', form.value.name)
     formData.append('description', form.value.description || '')
+    formData.append('url', form.value.url || '')
     formData.append('product_type', form.value.product_type)
     formData.append('collection_year', String(form.value.collection_year))
 
@@ -483,6 +508,7 @@ async function submitCreate() {
     formData.append('id', form.value.id)
     formData.append('name', form.value.name)
     formData.append('description', form.value.description || '')
+    formData.append('url', form.value.url || '')
     formData.append('product_type', form.value.product_type)
     formData.append('collection_year', String(form.value.collection_year))
 

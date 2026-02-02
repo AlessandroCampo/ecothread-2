@@ -35,8 +35,15 @@
 
         <title inertia>Ecothread</title>
 
-        <link rel="icon" href="/logo-mobile.png" sizes="any">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+     <link rel="icon" type="image/png" href="/logo-mobile.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/logo-mobile.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/logo-mobile.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/logo-mobile.png">
+        <link rel="shortcut icon" href="/logo-mobile.png">
+
+        <!-- Per Phantom e social preview -->
+        <meta property="og:image" content="{{ url('/logo-mobile.png') }}">
+        <meta name="msapplication-TileImage" content="/logo-mobile.png">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />

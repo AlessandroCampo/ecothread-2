@@ -21,8 +21,8 @@ class AdminController extends Controller
         }
 
         // Filtro per tipo prodotto
-        if ($request->filled('product_type')) {
-            $query->where('product_type', $request->product_type);
+        if ($request->filled('collection_year')) {
+            $query->where('collection_year', $request->collection_year);
         }
 
         // Ricerca per nome/id

@@ -39,7 +39,7 @@
       <template v-if="!product.passport_progress?.has_passport">
         <PassportProgressIndicator :progress="product.passport_progress" />
       </template>
-      <span v-else class="text-success text-caption">
+      <span v-else class="text-success text-caption d-none d-md-block">
         <v-icon size="x-small">mdi-check</v-icon> Certificato
       </span>
     </v-list-item-subtitle>

@@ -255,31 +255,44 @@
 
     </v-card-text>
 
-    <v-card-actions>
-      <v-spacer />
-      <template v-if="!result">
-        <v-btn @click="$emit('cancel')"  :disabled="loading" color="error" variant="text">
-          Annulla
-        </v-btn>
-        <v-btn
-          color="primary"
-          :loading="loading"
-          :disabled="!isValid || !isWalletConnected"
-          @click="submit"
-          variant="flat"
-        >
-        Registra Evento
-         <template #append>
-          <SolanaIcon />
-        </template>
-        </v-btn>
+   <v-card-actions class="d-flex flex-column flex-md-row justify-md-end ga-2">
+  <template v-if="!result">
+    <v-btn 
+      @click="$emit('cancel')" 
+      :disabled="loading" 
+      color="error" 
+      variant="flat" 
+      :block="mobile"
+    >
+      Annulla
+    </v-btn>
+    <v-btn
+      color="primary"
+      :loading="loading"
+      :disabled="!isValid || !isWalletConnected"
+      @click="submit"
+      variant="flat"
+      :block="mobile"
+    >
+      Registra Evento
+      <template #append>
+        <SolanaIcon />
       </template>
-      <template v-else>
-        <v-btn @click="$emit('cancel')" variant="flat" :disabled="loading" append-icon="mdi-check" color="primary">
-                Fatto
-        </v-btn>
-      </template>
-    </v-card-actions>
+    </v-btn>
+  </template>
+  <template v-else>
+    <v-btn 
+      @click="$emit('cancel')" 
+      variant="flat" 
+      :disabled="loading" 
+      append-icon="mdi-check" 
+      color="primary"
+      :block="mobile"
+    >
+      Fatto
+    </v-btn>
+  </template>
+</v-card-actions>
   </v-card>
 </template>
 
@@ -293,10 +306,10 @@ import WalletAlert from './WalletAlert.vue'
 import { useSnack } from '@/composables/useSnack'
 import SolanaIcon from './SolanaIcon.vue'
 import EventMetadataForm from './EventMetadataForm.vue'
-
+import { useDisplay } from 'vuetify/lib/composables/display.mjs'
 
 const { success: showSuccess, error: showError } = useSnack()
-
+const {mobile} = useDisplay();
 
 // ============================================
 // Solana Integration

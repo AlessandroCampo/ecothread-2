@@ -16,15 +16,16 @@ class Product extends Model
         'id',
         'name',
         'description',
+        'url',
         'product_type',
         'collection_year',
         'image_path',
-        'creator_wallet',      
+        'creator_wallet',
         'creation_timestamp',
         'pda_address',
         'tx_signature',
-        'status',              
-        'is_on_chain',         
+        'status',
+        'is_on_chain',
     ];
 
 

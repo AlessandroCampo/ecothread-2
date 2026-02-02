@@ -16,11 +16,11 @@
       <v-row dense>
         <v-col cols="6">
           <v-select
-            v-model="localFilters.status"
-            :items="statusOptions"
+            v-model="localFilters.collection_year"
+            :items="collectionYears"
             density="compact"
             variant="outlined"
-            label="Stato"
+            label="Anno collezione"
             clearable
             hide-details
             @update:model-value="emitFilters"
@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 
 const props = defineProps({
   filters: {
@@ -64,10 +64,10 @@ const emit = defineEmits(['update:filters'])
 
 const localFilters = ref({ ...props.filters })
 
-const statusOptions = [
-  { title: 'On-chain', value: 'on-chain' },
-  { title: 'Pending', value: 'pending' }
-]
+
+
+const currentYear = new Date().getFullYear()
+const collectionYears = Array.from({ length: 10 }, (_, i) => currentYear + 2 - i)
 
 let debounceTimer = null
 const debouncedEmit = () => {

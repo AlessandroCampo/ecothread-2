@@ -44,6 +44,7 @@ class ProductController extends Controller
         'id' => 'required|string|max:32|unique:products,id',
         'name' => 'required|string|max:255',
         'description' => 'nullable|string',
+        'url' => 'nullable|url',
         'product_type' => 'required|string',
         'collection_year' => 'nullable|integer',
         'image' => 'nullable|image|max:5120',
@@ -59,11 +60,12 @@ class ProductController extends Controller
         'id' => $validated['id'],
         'name' => $validated['name'],
         'description' => $validated['description'] ?? null,
+        'url' => $validated['url'] ?? null,
         'product_type' => $validated['product_type'],
         'collection_year' => $validated['collection_year'],
         'image_path' => $imagePath,
         'creator_wallet' => auth()->user()->wallet_address,
-        'status' => 'draft', // ← Non ancora on-chain
+        'status' => 'draft',
         'is_on_chain' => false,
     ]);
 
@@ -79,6 +81,7 @@ public function update(Request $request, Product $product)
     $validated = $request->validate([
         'name' => 'nullable|string|max:255',
         'description' => 'nullable|string',
+        'url' => 'nullable|url',
         'product_type' => ['required', new Enum(ProductType::class)],
         'collection_year' => 'nullable|integer',
         'image' => 'nullable|image|max:5120',

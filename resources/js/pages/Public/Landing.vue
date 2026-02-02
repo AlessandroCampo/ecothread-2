@@ -30,7 +30,7 @@
                     Powered by Solana Blockchain
                   </v-chip>
                   
-                  <h1 class="text-h2  font-weight-bold mb-4 hero-title">
+                  <h1 class="text-h4 text-md-h3 text-md-h2 font-weight-bold mb-4 hero-title">
                     La verità sulla
                     <span class="text-primary">sostenibilità</span>
                     dei tuoi capi
@@ -114,7 +114,7 @@
               <v-row justify="center" class="mb-12">
                 <v-col cols="12" md="8" class="text-center">
                   <v-chip color="error" variant="tonal" class="mb-4">Il problema</v-chip>
-                  <h2 class="text-h3 font-weight-bold mb-4">
+                  <h2 class="text-h4 text-md-h3 font-weight-bold mb-4">
                     Il greenwashing costa caro
                   </h2>
                   <p class="text-h6 text-medium-emphasis">
@@ -142,7 +142,7 @@
               <v-row justify="center" class="mb-12">
                 <v-col cols="12" md="8" class="text-center">
                   <v-chip color="primary" variant="tonal" class="mb-4">La soluzione</v-chip>
-                  <h2 class="text-h3 font-weight-bold mb-4">
+                  <h2 class="text-h4 text-md-h3 font-weight-bold mb-4">
                     Trasparenza verificabile, non promessa
                   </h2>
                   <p class="text-h6 text-medium-emphasis">
@@ -190,7 +190,7 @@
               <v-row justify="center" class="mb-12">
                 <v-col cols="12" md="8" class="text-center">
                   <v-chip color="primary" variant="tonal" class="mb-4">Funzionalità</v-chip>
-                  <h2 class="text-h3 font-weight-bold mb-4">
+                  <h2 class="text-h4 text-md-h3 font-weight-bold mb-4">
                     Tutto ciò che serve per verificare
                   </h2>
                 </v-col>
@@ -312,7 +312,7 @@
             <v-container>
               <v-row align="center">
                 <v-col cols="12" md="7">
-                  <h2 class="text-h3 font-weight-bold text-white mb-4">
+                  <h2 class="text-h4 text-md-h3 font-weight-bold text-white mb-4">
                     Sei un brand di moda?
                   </h2>
                   <p class="text-h6 text-white-darken-1 mb-6">
@@ -379,7 +379,7 @@
               <v-row justify="center" class="mb-8">
                 <v-col cols="12" md="8" class="text-center">
                   <v-chip color="primary" variant="tonal" class="mb-4">Tecnologia</v-chip>
-                  <h2 class="text-h3 font-weight-bold mb-4">
+                  <h2 class="text-h4 text-md-h3 font-weight-bold mb-4">
                     Costruito su Solana
                   </h2>
                   <p class="text-h6 text-medium-emphasis">
@@ -391,7 +391,7 @@
               <v-row justify="center">
                 <v-col v-for="stat in techStats" :key="stat.label" cols="6" md="3">
                   <v-card variant="flat" class="pa-6 text-center bg-white rounded-xl">
-                    <div class="text-h3 font-weight-bold text-primary mb-2">{{ stat.value }}</div>
+                    <div class="text-h4 text-md-h3 font-weight-bold text-primary mb-2">{{ stat.value }}</div>
                     <div class="text-body-2 text-medium-emphasis">{{ stat.label }}</div>
                   </v-card>
                 </v-col>
