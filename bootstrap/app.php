@@ -23,11 +23,9 @@ $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR |
             Request::HEADER_X_FORWARDED_PORT |
             Request::HEADER_X_FORWARDED_PROTO |
             Request::HEADER_X_FORWARDED_AWS_ELB);
-         $middleware->validateCsrfTokens(except: [
-            'api/*',
-        'auth/*',
-        'admin/*',
-    ]);
+       $middleware->validateCsrfTokens(except: [
+    '*',  
+]);
 
         $middleware->web(append: [
             HandleAppearance::class,
