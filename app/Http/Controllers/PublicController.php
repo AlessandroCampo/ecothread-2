@@ -19,7 +19,7 @@ class PublicController extends Controller
             ]);
         }
         
-        // Cerca per passport number
+        // Cerca per passport number direttamente
         $passport = Passport::where('passport_number', 'LIKE', "%{$query}%")->first();
         
         if ($passport) {
@@ -29,16 +29,16 @@ class PublicController extends Controller
             ]);
         }
         
-        // Cerca per product ID
-        $product = Product::where('id', $query)
-            ->orWhere('name', 'LIKE', "%{$query}%")
-            ->first();
-
-            
-        if ($product) {
+        // Cerca prodotti che hanno un passaporto
+        $passport = Passport::whereHas('product', function ($q) use ($query) {
+            $q->where('id', $query)
+              ->orWhere('name', 'LIKE', "%{$query}%");
+        })->first();
+        
+        if ($passport) {
             return response()->json([
                 'success' => true,
-                'url' => route('passport.verify', $product->id)
+                'url' => route('passport.verify', $passport->passport_number)
             ]);
         }
         

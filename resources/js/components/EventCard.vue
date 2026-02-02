@@ -275,6 +275,7 @@
               color="primary"
               :loading="verifyingMetadata"
               @click="verifyMetadata"
+              :disabled="!blockchainVerified"
               block
             >
               <v-icon start size="16">mdi-database-check</v-icon>
@@ -390,6 +391,7 @@
                   color="success"
                   :loading="verifyingDocument"
                   @click="verifyDocument"
+                  :disabled="!blockchainVerified"
                 >
                   <v-icon start size="16">mdi-file-check</v-icon>
                   Verifica documento
@@ -516,11 +518,14 @@ const props = withDefaults(defineProps<{
   event: EventData
   showBlockchainInfo?: boolean
   isCompany?: boolean
-  defaultExpanded?: boolean
+  defaultExpanded?: boolean,
+  blockchainVerified?: boolean,
 }>(), {
   showBlockchainInfo: true,
   isCompany: false,
   defaultExpanded: false,
+  blockchainVerified: true
+
 })
 
 // Composables

@@ -12,11 +12,31 @@ const idl = idlJson as Idl
 const PROGRAM_ID = new PublicKey(
   (idlJson as any).address || import.meta.env.VITE_SOLANA_PROGRAM_ID
 )
-const NETWORK = import.meta.env.VITE_SOLANA_NETWORK || 'https://api.devnet.solana.com'
+
+// RPC endpoints con fallback
+const RPC_ENDPOINTS = [
+  import.meta.env.VITE_SOLANA_NETWORK,
+  'https://api.devnet.solana.com'
+].filter(Boolean) as string[]
+
 const SOLANA_CLUSTER = 'devnet'
 
+// Timeout per le chiamate RPC (più breve su mobile)
+const RPC_TIMEOUT = 10000
+
 export function useSolana() {
-  const connection = new Connection(NETWORK, 'confirmed')
+  let currentEndpointIndex = 0
+  
+  // Crea connection con endpoint corrente
+  const getConnection = () => {
+    return new Connection(RPC_ENDPOINTS[currentEndpointIndex], {
+      commitment: 'confirmed',
+      confirmTransactionInitialTimeout: RPC_TIMEOUT
+    })
+  }
+  
+  let connection = getConnection()
+  
   const loading = ref(false)
   const error = ref<string | null>(null)
   const lastTxSignature = ref<string | null>(null)
@@ -40,7 +60,44 @@ export function useSolana() {
   const isWalletConnected = computed(() => connected.value && !!publicKey.value)
 
   // ============================================
-  // Provider & Program
+  // RPC con Retry e Fallback
+  // ============================================
+  const withRetryAndTimeout = async <T>(
+    fn: (conn: Connection) => Promise<T>,
+    timeoutMs = RPC_TIMEOUT,
+    maxRetries = 2
+  ): Promise<T> => {
+    let lastError: Error | null = null
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Crea promise con timeout
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('RPC Timeout')), timeoutMs)
+        })
+        
+        const result = await Promise.race([
+          fn(connection),
+          timeoutPromise
+        ])
+        
+        return result
+      } catch (e: any) {
+        lastError = e
+        console.warn(`RPC attempt ${attempt + 1}/${maxRetries + 1} failed:`, e.message)
+        
+        // Passa al prossimo endpoint
+        currentEndpointIndex = (currentEndpointIndex + 1) % RPC_ENDPOINTS.length
+        connection = getConnection()
+        console.log(`Switching to RPC: ${RPC_ENDPOINTS[currentEndpointIndex]}`)
+      }
+    }
+    
+    throw lastError
+  }
+
+  // ============================================
+  // Provider & Program (per operazioni con wallet)
   // ============================================
   const getAnchorProvider = () => {
     if (!wallet.value?.adapter || !publicKey.value) {
@@ -57,6 +114,18 @@ export function useSolana() {
   const getProgram = () => {
     const provider = getAnchorProvider()
     return new Program(idl, provider)
+  }
+
+  // ============================================
+  // Read-only Program (per fetch senza wallet)
+  // ============================================
+  const getReadOnlyProgram = () => {
+    // Provider "fake" per operazioni di sola lettura
+    const readOnlyProvider = {
+      connection,
+      publicKey: null,
+    }
+    return new Program(idl, readOnlyProvider as any)
   }
 
   // ============================================
@@ -171,7 +240,6 @@ export function useSolana() {
       const productPDA = getProductPDA(productId)
       const eventPDA = getEventPDA(productPDA, eventIndex)
 
-      // Default empty hashes to 64 zeros if not provided
       const finalDocumentHash = documentHash || '0'.repeat(64)
       const finalMetadataHash = metadataHash || '0'.repeat(64)
 
@@ -221,42 +289,42 @@ export function useSolana() {
   }
 
   // ============================================
-  // Fetch Product
+  // Fetch Product (con retry e timeout)
   // ============================================
   const fetchProduct = async (productId: string) => {
     try {
-      const program = getProgram()
-      const productPDA = getProductPDA(productId)
-      const product = await program.account.product.fetch(productPDA)
-      
-      return {
-        success: true,
-        data: {
+      const result = await withRetryAndTimeout(async (conn) => {
+        const program = getReadOnlyProgram()
+        const productPDA = getProductPDA(productId)
+        const product = await program.account.product.fetch(productPDA)
+        
+        return {
           productId: product.productId,
           creator: product.creator.toBase58(),
           createdAt: product.createdAt.toNumber(),
           eventCount: product.eventCount,
           pdaAddress: productPDA.toBase58(),
         }
-      }
+      })
+      
+      return { success: true, data: result }
     } catch (e: any) {
+      console.error('fetchProduct error:', e)
       return { success: false, error: e.message }
     }
   }
 
   // ============================================
-  // Fetch Event
+  // Fetch Event (con retry e timeout)
   // ============================================
   const fetchEvent = async (pdaAddress: string) => {
     try {
-      const program = getProgram()
-      const pda = new PublicKey(pdaAddress)
-      
-      const event = await program.account.event.fetch(pda)
-      
-      return {
-        success: true,
-        data: {
+      const result = await withRetryAndTimeout(async (conn) => {
+        const program = getReadOnlyProgram()
+        const pda = new PublicKey(pdaAddress)
+        const event = await program.account.event.fetch(pda)
+        
+        return {
           product: event.product.toBase58(),
           eventIndex: event.eventIndex,
           eventType: event.eventType,
@@ -266,11 +334,16 @@ export function useSolana() {
           documentUri: event.documentUri,
           metadataHash: event.metadataHash,
         }
-      }
+      })
+      
+      return { success: true, data: result }
     } catch (e: any) {
+      console.error('fetchEvent error:', e)
       return { success: false, error: e.message }
     }
   }
+
+  // ... resto del codice invariato (hashFile, hashMetadata, etc.)
 
   // ============================================
   // Hash Utilities

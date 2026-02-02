@@ -159,6 +159,7 @@
                   :event="event" 
                   :default-expanded="true"
                   :show-blockchain-info="true"
+                  :blockchainVerified
                 />
               </v-window-item>
             </v-window>
