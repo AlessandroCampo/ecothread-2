@@ -133,6 +133,8 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { useWallet } from 'solana-wallets-vue'
 import { usePhantomMobile } from '@/composables/usePhantomMobile'
+import { Capacitor } from '@capacitor/core'
+import { App as CapacitorApp } from '@capacitor/app'
 import api from '@/lib/axios'
 
 // ============================================
@@ -196,11 +198,11 @@ const walletAddressShort = computed(() => {
 // ============================================
 // MOBILE: Connect via deep link
 // ============================================
-const mobileConnect = () => {
+const mobileConnect = async () => {
   loading.value = true
   error.value = null
   sessionStorage.setItem('phantom_pending_action', 'connect')
-  phantom.connect()
+  await phantom.connect()
 }
 
 // ============================================
@@ -224,7 +226,7 @@ const mobileSignAndLogin = async () => {
     sessionStorage.setItem('phantom_pending_action', 'sign')
     sessionStorage.setItem('phantom_challenge_nonce', challengeData.nonce)
 
-    phantom.signMessage(challengeData.nonce)
+    await phantom.signMessage(challengeData.nonce)
   } catch (e) {
     console.error('Challenge error:', e)
     error.value = 'Errore durante la richiesta di challenge'
@@ -406,11 +408,10 @@ onMounted(async () => {
       mobileWalletAddress.value = storedPk
     }
 
-    // Ascolta deep link di ritorno (se Capacitor bridge è disponibile)
-    const Capacitor = (window as any).Capacitor
-    if (Capacitor?.Plugins?.App) {
-      Capacitor.Plugins.App.addListener('appUrlOpen', (event: any) => {
-        if (event.url && event.url.startsWith('ecothread://phantom')) {
+    // Ascolta deep link di ritorno via Capacitor App plugin
+    if (Capacitor.isNativePlatform()) {
+      CapacitorApp.addListener('appUrlOpen', (event) => {
+        if (event.url?.startsWith('ecothread://phantom')) {
           handleDeepLink(event.url)
         }
       })

@@ -8,7 +8,8 @@
       "Bash(findstr:*)",
       "Bash(npx cap open:*)",
       "Bash(.gradlew.bat assembleDebug:*)",
-      "Bash(npx cap run android:*)"
+      "Bash(npx cap run android:*)",
+      "Bash(powershell -Command:*)"
     ]
   }
 }

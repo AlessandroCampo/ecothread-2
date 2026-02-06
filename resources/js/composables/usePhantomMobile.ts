@@ -1,11 +1,15 @@
 import { ref } from 'vue'
 import nacl from 'tweetnacl'
 import bs58 from 'bs58'
+import { registerPlugin } from '@capacitor/core'
 
 const PHANTOM_CONNECT_URL = 'https://phantom.app/ul/v1/connect'
 const PHANTOM_SIGN_MESSAGE_URL = 'https://phantom.app/ul/v1/signMessage'
 const REDIRECT_SCHEME = 'ecothread://phantom'
 const CLUSTER = 'devnet'
+
+// Plugin nativo per aprire URL esterni (registrato in MainActivity.java)
+const OpenExternal = registerPlugin('OpenExternal')
 
 // Stato persistente tra le chiamate (sopravvive al redirect)
 const dappKeyPair = ref<nacl.BoxKeyPair | null>(null)
@@ -45,21 +49,28 @@ function buildUrl(base: string, params: Record<string, string>): string {
 
 /**
  * Apre un URL esterno forzando l'uscita dal WebView.
- * Su Android usa intent:// per aprire direttamente l'app Phantom.
+ * Cascata: plugin nativo → Capacitor Browser → fallback diretto.
  */
-function openExternalUrl(httpsUrl: string) {
-  const isAndroid = /Android/i.test(navigator.userAgent)
-
-  if (isAndroid) {
-    // Converte https://phantom.app/ul/v1/... in intent://
-    // Questo forza Android ad aprire l'app Phantom invece di navigare nel WebView
-    const urlObj = new URL(httpsUrl)
-    const intentUrl = `intent://${urlObj.host}${urlObj.pathname}${urlObj.search}#Intent;scheme=https;package=app.phantom;end`
-    window.location.href = intentUrl
-  } else {
-    // iOS: usa il link universale direttamente
-    window.location.href = httpsUrl
+async function openExternalUrl(httpsUrl: string) {
+  // 1. Prova plugin nativo (apre Phantom direttamente via ACTION_VIEW intent)
+  try {
+    await (OpenExternal as any).open({ url: httpsUrl })
+    return
+  } catch (e) {
+    console.warn('OpenExternal plugin not available:', e)
   }
+
+  // 2. Fallback: Capacitor Browser (Chrome Custom Tab)
+  try {
+    const { Browser } = await import('@capacitor/browser')
+    await Browser.open({ url: httpsUrl })
+    return
+  } catch (e) {
+    console.warn('Browser plugin not available:', e)
+  }
+
+  // 3. Ultimo fallback: navigazione diretta
+  window.location.href = httpsUrl
 }
 
 function decryptPayload(data: string, nonce: string, sharedSecretKey: Uint8Array): any {
@@ -90,7 +101,7 @@ export function usePhantomMobile() {
    * Avvia la connessione a Phantom via deep link.
    * L'utente viene portato su Phantom, approva, e torna nell'app.
    */
-  function connect() {
+  async function connect() {
     const kp = getOrCreateKeyPair()
 
     const params = {
@@ -101,7 +112,7 @@ export function usePhantomMobile() {
     }
 
     const url = buildUrl(PHANTOM_CONNECT_URL, params)
-    openExternalUrl(url)
+    await openExternalUrl(url)
   }
 
   /**
@@ -151,7 +162,7 @@ export function usePhantomMobile() {
   /**
    * Avvia la firma di un messaggio via deep link Phantom.
    */
-  function signMessage(message: string) {
+  async function signMessage(message: string) {
     const storedSecret = sessionStorage.getItem('phantom_shared_secret')
     const storedSession = sessionStorage.getItem('phantom_session')
 
@@ -177,7 +188,7 @@ export function usePhantomMobile() {
     }
 
     const url = buildUrl(PHANTOM_SIGN_MESSAGE_URL, params)
-    openExternalUrl(url)
+    await openExternalUrl(url)
   }
 
   /**
@@ -213,13 +224,6 @@ export function usePhantomMobile() {
   }
 
   /**
-   * Controlla se siamo in un'app Capacitor.
-   */
-  function isCapacitor(): boolean {
-    return !!(window as any).Capacitor
-  }
-
-  /**
    * Restituisce la public key salvata (dopo connect).
    */
   function getStoredPublicKey(): string | null {
@@ -245,7 +249,6 @@ export function usePhantomMobile() {
     handleConnectResponse,
     signMessage,
     handleSignResponse,
-    isCapacitor,
     getStoredPublicKey,
     disconnect,
     phantomPublicKey,
