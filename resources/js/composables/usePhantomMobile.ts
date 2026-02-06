@@ -43,6 +43,25 @@ function buildUrl(base: string, params: Record<string, string>): string {
   return url.toString()
 }
 
+/**
+ * Apre un URL esterno forzando l'uscita dal WebView.
+ * Su Android usa intent:// per aprire direttamente l'app Phantom.
+ */
+function openExternalUrl(httpsUrl: string) {
+  const isAndroid = /Android/i.test(navigator.userAgent)
+
+  if (isAndroid) {
+    // Converte https://phantom.app/ul/v1/... in intent://
+    // Questo forza Android ad aprire l'app Phantom invece di navigare nel WebView
+    const urlObj = new URL(httpsUrl)
+    const intentUrl = `intent://${urlObj.host}${urlObj.pathname}${urlObj.search}#Intent;scheme=https;package=app.phantom;end`
+    window.location.href = intentUrl
+  } else {
+    // iOS: usa il link universale direttamente
+    window.location.href = httpsUrl
+  }
+}
+
 function decryptPayload(data: string, nonce: string, sharedSecretKey: Uint8Array): any {
   const decrypted = nacl.box.open.after(
     bs58.decode(data),
@@ -82,7 +101,7 @@ export function usePhantomMobile() {
     }
 
     const url = buildUrl(PHANTOM_CONNECT_URL, params)
-    window.location.href = url
+    openExternalUrl(url)
   }
 
   /**
@@ -158,7 +177,7 @@ export function usePhantomMobile() {
     }
 
     const url = buildUrl(PHANTOM_SIGN_MESSAGE_URL, params)
-    window.location.href = url
+    openExternalUrl(url)
   }
 
   /**
