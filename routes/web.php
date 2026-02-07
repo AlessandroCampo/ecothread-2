@@ -9,6 +9,15 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // ============================================
+// WELL-KNOWN (Digital Asset Links per Android Passkey)
+// ============================================
+Route::get('/.well-known/assetlinks.json', function () {
+    return response()->file(public_path('.well-known/assetlinks.json'), [
+        'Content-Type' => 'application/json',
+    ]);
+});
+
+// ============================================
 // PUBLIC PAGES
 // ============================================
 Route::get('/', function () {

@@ -9,7 +9,9 @@
       "Bash(npx cap open:*)",
       "Bash(.gradlew.bat assembleDebug:*)",
       "Bash(npx cap run android:*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npm ls:*)"
     ]
   }
 }

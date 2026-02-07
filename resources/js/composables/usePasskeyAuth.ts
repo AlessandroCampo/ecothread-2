@@ -1,19 +1,27 @@
 /**
  * usePasskeyAuth - Autenticazione passkey + wallet Solana
- * 
+ *
  * Librerie:
- * - @simplewebauthn/browser per WebAuthn
+ * - @simplewebauthn/browser per WebAuthn (web)
+ * - capacitor-passkey-plugin per WebAuthn nativo (Android/iOS)
  * - @scure/bip39 per mnemonic (browser-native)
  * - @solana/web3.js per keypair
  */
 
 import { ref, computed, readonly } from 'vue'
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
+import { PasskeyPlugin } from 'capacitor-passkey-plugin'
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english.js'
 import { Keypair, PublicKey } from '@solana/web3.js'
 import nacl from 'tweetnacl'
 import api from '@/lib/axios'
+
+// ============================================
+// PLATFORM DETECTION
+// ============================================
+
+const isNative = (): boolean => !!(window as any).Capacitor?.isNativePlatform()
 
 // ============================================
 // TYPES
@@ -98,8 +106,14 @@ export function usePasskeyAuth() {
         wallet_address: tempKeypair.publicKey.toBase58(),
       })
 
-      // 2. Crea passkey con simplewebauthn (gestisce tutto!)
-      const credential = await startRegistration({ optionsJSON: options })
+      // 2. Crea passkey (nativo o web)
+      let credential: any
+      if (isNative()) {
+        const result = await PasskeyPlugin.createPasskey({ publicKey: options })
+        credential = { ...result, type: 'public-key' }
+      } else {
+        credential = await startRegistration({ optionsJSON: options })
+      }
 
       // 3. Cripta private key
       const salt = crypto.getRandomValues(new Uint8Array(32))
@@ -143,8 +157,13 @@ export function usePasskeyAuth() {
       // 1. Ottieni opzioni
       const { data: options } = await api.post('/auth/login/options')
 
-      // 2. Autentica con simplewebauthn
-      const credential = await startAuthentication({ optionsJSON: options })
+      // 2. Autentica (nativo o web)
+      let credential: any
+      if (isNative()) {
+        credential = await PasskeyPlugin.authenticate({ publicKey: options })
+      } else {
+        credential = await startAuthentication({ optionsJSON: options })
+      }
 
       // 3. Verifica sul server
       const { data: result } = await api.post('/auth/login/verify', credential)
@@ -188,7 +207,11 @@ export function usePasskeyAuth() {
     try {
       // Richiede autenticazione passkey per sbloccare
       const { data: options } = await api.post('/auth/login/options')
-      await startAuthentication({ optionsJSON: options })
+      if (isNative()) {
+        await PasskeyPlugin.authenticate({ publicKey: options })
+      } else {
+        await startAuthentication({ optionsJSON: options })
+      }
 
       // Decripta
       const salt = base64ToBuffer(user.value.encryption_salt!)
