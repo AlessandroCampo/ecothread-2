@@ -46,7 +46,7 @@ let tempKeypair: Keypair | null = null
 // COMPOSABLE
 // ============================================
 
-export function usePasskeyAuth() {
+export function usePassKeyAuth() {
 
   const isPasskeySupported = computed(() => {
     return !!window.PublicKeyCredential
