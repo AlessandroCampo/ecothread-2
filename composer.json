@@ -11,11 +11,13 @@
     "require": {
         "php": "^8.2",
         "inertiajs/inertia-laravel": "^2.0",
+        "laragear/webauthn": "^4.1",
         "laravel/fortify": "^1.30",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
-        "tightenco/ziggy": "^2.6"
+        "tightenco/ziggy": "^2.6",
+        "web-auth/webauthn-lib": "^5.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

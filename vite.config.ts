@@ -30,4 +30,15 @@ export default defineConfig({
             '@': path.resolve(__dirname, 'resources/js'),
         },
     },
+    define: {
+        'process.env': {},
+        global: 'globalThis',
+    },
+    optimizeDeps: {
+        esbuildOptions: {
+            define: {
+                global: 'globalThis',
+            },
+        },
+    },
 });

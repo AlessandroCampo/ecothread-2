@@ -41,6 +41,7 @@
                 rounded
                 color="error"
                 append-icon="mdi-logout"
+                @click="logout"
               >
                 Disconnect
               </v-btn>
@@ -59,6 +60,7 @@ import { usePage, Link, router } from "@inertiajs/vue3";
 import {ref, computed} from 'vue';
 import ProfileEditDialog from "./ProfileEditDialog.vue";
 import CompanyAvatar from "./CompanyAvatar.vue";
+import api from "@/lib/axios";
 
 
 /*  

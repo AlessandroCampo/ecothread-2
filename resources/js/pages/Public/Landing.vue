@@ -14,7 +14,7 @@
               variant="outlined" 
               color="primary" 
               class="mr-2"
-              :href="route('auth.login')"
+              :href="route('login')"
             >
               Accedi
             </v-btn>
@@ -54,7 +54,7 @@
                       size="x-large"
                       variant="outlined"
                       color="primary"
-                      :href="route('auth.login')"
+                      :href="route('login')"
                     >
                       Sei un'azienda?
                     </v-btn>
@@ -423,7 +423,7 @@
                       </a>
                     </v-list-item>
                     <v-list-item class="px-0 min-h-0 mb-2">
-                      <a :href="route('auth.login')" class="text-body-2 text-decoration-none text-medium-emphasis">
+                      <a :href="route('login')" class="text-body-2 text-decoration-none text-medium-emphasis">
                         Per aziende
                       </a>
                     </v-list-item>

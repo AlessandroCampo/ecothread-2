@@ -1,126 +1,169 @@
 <template>
   <v-container class="fill-height d-flex h-screen bg-primary-darken-1" fluid>
     <v-row justify="center" align="center">
-      <v-col cols="12" sm="8" md="4">
+      <v-col cols="12" sm="8" md="5" lg="4">
         <v-card class="pa-6" elevation="8">
-          <v-card-title class="text-center text-h4 mb-4 d-flex justify-center">
-             <img  src="/logo.png" class="d-none d-md-block" width="300"/>
-              <img width="100" src="/logo-mobile.png" class="d-block d-md-none"/>
+          <!-- Logo -->
+          <v-card-title class="text-center mb-4 d-flex justify-center">
+            <img src="/logo.png" class="d-none d-md-block" width="300" />
+            <img width="100" src="/logo-mobile.png" class="d-block d-md-none" />
           </v-card-title>
 
-          <v-card-subtitle class="text-center mb-6">
-            Accedi con il tuo wallet Solana
-          </v-card-subtitle>
-
+          <!-- Error -->
           <v-alert v-if="error" type="error" class="mb-4" closable @click:close="error = null">
             {{ error }}
           </v-alert>
 
-          <!-- FLUSSO 1: Phantom disponibile (desktop extension o Phantom in-app browser) -->
-          <div v-if="hasPhantomExtension">
+          <!-- Passkey not supported -->
+          <v-alert v-if="!isPasskeySupported" type="warning" class="mb-4">
+            Il tuo browser non supporta le passkey. Usa Chrome, Safari o Edge.
+          </v-alert>
+
+          <!-- ================================ -->
+          <!-- LOGIN -->
+          <!-- ================================ -->
+          <div v-if="mode === 'login' && isPasskeySupported">
+            <v-card-subtitle class="text-center mb-6">
+              Accedi con la tua passkey
+            </v-card-subtitle>
+
+            <v-btn color="primary" size="large" block :loading="isLoading" @click="handleLogin">
+              <v-icon start>mdi-fingerprint</v-icon>
+              Accedi con Passkey
+            </v-btn>
+
+            <div class="text-center mt-6">
+              <span class="text-medium-emphasis">Non hai un account?</span>
+              <v-btn variant="text" color="primary" @click="mode = 'register-info'">
+                Registrati
+              </v-btn>
+            </div>
+          </div>
+
+          <!-- ================================ -->
+          <!-- REGISTER: INFO -->
+          <!-- ================================ -->
+          <div v-else-if="mode === 'register-info'">
+            <v-card-subtitle class="text-center mb-6">
+              Crea il tuo account
+            </v-card-subtitle>
+
+            <v-form @submit.prevent="handleGenerateWallet">
+              <v-text-field
+                v-model="form.name"
+                label="Nome Azienda"
+                variant="outlined"
+                class="mb-3"
+                :rules="[v => !!v || 'Obbligatorio']"
+              />
+
+              <v-text-field
+                v-model="form.email"
+                label="Email (opzionale)"
+                type="email"
+                variant="outlined"
+                class="mb-4"
+              />
+
+              <v-btn color="primary" size="large" block type="submit" :loading="isLoading">
+                Continua
+              </v-btn>
+            </v-form>
+
+            <div class="text-center mt-4">
+              <v-btn variant="text" @click="mode = 'login'">← Torna al login</v-btn>
+            </div>
+          </div>
+
+          <!-- ================================ -->
+          <!-- REGISTER: RECOVERY PHRASE -->
+          <!-- ================================ -->
+          <div v-else-if="mode === 'register-recovery'">
+            <v-card-subtitle class="text-center mb-4">
+              Salva la Recovery Phrase
+            </v-card-subtitle>
+
+            <v-alert type="warning" variant="tonal" class="mb-4">
+              <strong>IMPORTANTE:</strong> Queste 24 parole sono l'unico modo per recuperare il wallet.
+              Scrivile su carta!
+            </v-alert>
+
+            <v-card variant="outlined" class="pa-4 mb-4 bg-grey-lighten-4">
+              <div class="recovery-grid">
+                <div v-for="(word, i) in mnemonicWords" :key="i" class="recovery-word">
+                  <span class="word-num">{{ i + 1 }}.</span>
+                  <span>{{ word }}</span>
+                </div>
+              </div>
+            </v-card>
+
+            <v-card variant="outlined" class="pa-3 mb-4">
+              <div class="text-caption text-medium-emphasis">Wallet Address</div>
+              <code>{{ publicKey }}</code>
+            </v-card>
+
+            <v-checkbox v-model="recoveryConfirmed" color="primary" class="mb-2">
+              <template #label>
+                <span class="text-body-2">Ho salvato la recovery phrase</span>
+              </template>
+            </v-checkbox>
+
             <v-btn
-              v-if="!connected"
               color="primary"
               size="large"
               block
-              :loading="loading"
-              @click="handleConnect"
+              :disabled="!recoveryConfirmed"
+              @click="mode = 'register-passkey'"
             >
-              <v-icon start>mdi-wallet</v-icon>
-              Connetti Phantom
+              Continua
             </v-btn>
+          </div>
 
-            <div v-if="connecting && !connected" class="text-center py-4">
-              <v-progress-circular indeterminate color="primary" class="mb-3" />
+          <!-- ================================ -->
+          <!-- REGISTER: CREATE PASSKEY -->
+          <!-- ================================ -->
+          <div v-else-if="mode === 'register-passkey'">
+            <v-card-subtitle class="text-center mb-4">
+              Proteggi il tuo account
+            </v-card-subtitle>
+
+            <div class="text-center mb-6">
+              <v-icon size="64" color="primary" class="mb-4">mdi-fingerprint</v-icon>
               <p class="text-body-2 text-medium-emphasis">
-                Approva la connessione su Phantom...
-              </p>
-              <v-btn variant="text" size="small" class="mt-2" @click="cancelConnection">
-                Annulla
-              </v-btn>
-            </div>
-
-            <div v-if="connected && !connecting" class="text-center">
-              <v-chip color="success" class="mb-4">
-                <v-icon start size="small">mdi-check-circle</v-icon>
-                {{ walletAddressShort }}
-              </v-chip>
-
-              <v-btn
-                color="primary"
-                size="large"
-                block
-                :loading="loading"
-                @click="signAndLogin"
-              >
-                <v-icon start>mdi-draw</v-icon>
-                Firma e Accedi
-              </v-btn>
-
-              <v-btn variant="text" class="mt-2" @click="handleDisconnect">
-                Disconnetti
-              </v-btn>
-            </div>
-          </div>
-
-          <!-- FLUSSO 2: Mobile senza estensione Phantom → deep link protocol -->
-          <div v-else-if="isMobileDevice">
-            <div v-if="!mobileConnected">
-              <v-btn
-                color="primary"
-                size="large"
-                block
-                :loading="loading"
-                @click="mobileConnect"
-              >
-                <v-icon start>mdi-wallet</v-icon>
-                Connetti Phantom
-              </v-btn>
-
-              <p class="text-caption text-center mt-4 text-medium-emphasis">
-                Si aprirà Phantom per approvare la connessione
+                Usa Face ID, Touch ID o PIN per proteggere il tuo account e wallet.
               </p>
             </div>
 
-            <div v-else class="text-center">
-              <v-chip color="success" class="mb-4">
-                <v-icon start size="small">mdi-check-circle</v-icon>
-                {{ mobileWalletShort }}
-              </v-chip>
-
-              <v-btn
-                color="primary"
-                size="large"
-                block
-                :loading="loading"
-                @click="mobileSignAndLogin"
-              >
-                <v-icon start>mdi-draw</v-icon>
-                Firma e Accedi
-              </v-btn>
-
-              <v-btn variant="text" class="mt-2" @click="mobileDisconnect">
-                Disconnetti
-              </v-btn>
-            </div>
-          </div>
-
-          <!-- FLUSSO 3: Desktop senza Phantom → installa -->
-          <div v-else>
-            <v-btn
-              color="primary"
-              size="large"
-              block
-              href="https://phantom.app/"
-              target="_blank"
-            >
-              <v-icon start>mdi-download</v-icon>
-              Installa Phantom
+            <v-btn color="primary" size="large" block :loading="isLoading" @click="handleRegister">
+              <v-icon start>mdi-shield-check</v-icon>
+              Crea Passkey
             </v-btn>
 
-            <p class="text-caption text-center mt-4 text-medium-emphasis">
-              Installa l'estensione Phantom per accedere
-            </p>
+            <div class="text-center mt-4">
+              <v-btn variant="text" @click="mode = 'register-recovery'">← Indietro</v-btn>
+            </div>
+          </div>
+
+          <!-- ================================ -->
+          <!-- SUCCESS -->
+          <!-- ================================ -->
+          <div v-else-if="mode === 'success'">
+            <div class="text-center">
+              <v-icon size="64" color="success" class="mb-4">mdi-check-circle</v-icon>
+              <h3 class="text-h6 mb-2">Account Creato!</h3>
+              <p class="text-medium-emphasis mb-4">
+                Il tuo wallet è pronto per registrare eventi sulla blockchain.
+              </p>
+
+              <v-card variant="outlined" class="pa-3 mb-6 text-left">
+                <div class="text-caption text-medium-emphasis">Wallet</div>
+                <code>{{ walletAddress }}</code>
+              </v-card>
+
+              <v-btn color="primary" size="large" block @click="goToDashboard">
+                Vai alla Dashboard
+              </v-btn>
+            </div>
           </div>
         </v-card>
       </v-col>
@@ -129,327 +172,102 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { useWallet } from 'solana-wallets-vue'
-import { usePhantomMobile } from '@/composables/usePhantomMobile'
-import { Capacitor } from '@capacitor/core'
-import { App as CapacitorApp } from '@capacitor/app'
-import api from '@/lib/axios'
+import { usePasskeyAuth } from '@/composables/usePasskeyauth'
+import { route } from 'ziggy-js'
 
-// ============================================
-// Phantom Mobile (deep links)
-// ============================================
-const phantom = usePhantomMobile()
-const mobileConnected = ref(false)
-const mobileWalletAddress = ref<string | null>(null)
-
-const mobileWalletShort = computed(() => {
-  if (!mobileWalletAddress.value) return ''
-  const addr = mobileWalletAddress.value
-  return addr.slice(0, 4) + '...' + addr.slice(-4)
-})
-
-// ============================================
-// Wallet Adapter (desktop/Phantom browser)
-// ============================================
 const {
-  publicKey,
-  connected,
-  connecting,
-  wallet,
-  wallets,
-  connect,
-  disconnect,
-  select,
-} = useWallet()
+  isPasskeySupported,
+  isLoading,
+  error,
+  walletAddress,
+  generateWallet,
+  register,
+  login,
+  checkSession,
+  getTempMnemonic,
+  clearTempMnemonic,
+} = usePasskeyAuth()
 
-// ============================================
-// State
-// ============================================
-const loading = ref(false)
-const error = ref<string | null>(null)
-const connectionCancelled = ref(false)
+type Mode = 'login' | 'register-info' | 'register-recovery' | 'register-passkey' | 'success'
 
-// ============================================
-// Detection: semplificata
-// ============================================
+const mode = ref<Mode>('login')
+const form = ref({ name: '', email: '' })
+const publicKey = ref('')
+const recoveryConfirmed = ref(false)
 
-// Phantom extension/in-app browser disponibile?
-const hasPhantomExtension = ref(false)
+const mnemonicWords = computed(() => getTempMnemonic()?.split(' ') || [])
 
-// Siamo su mobile?
-const isMobileDevice = computed(() => {
-  if (typeof navigator === 'undefined') return false
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  )
-})
-
-// ============================================
-// Computed
-// ============================================
-const walletAddressShort = computed(() => {
-  if (!publicKey.value) return ''
-  const addr = publicKey.value.toBase58()
-  return addr.slice(0, 4) + '...' + addr.slice(-4)
-})
-
-// ============================================
-// MOBILE: Connect via deep link
-// ============================================
-const mobileConnect = async () => {
-  loading.value = true
-  error.value = null
-  sessionStorage.setItem('phantom_pending_action', 'connect')
-  await phantom.connect()
-}
-
-// ============================================
-// MOBILE: Sign e Login via deep link
-// ============================================
-const mobileSignAndLogin = async () => {
-  const walletAddress = mobileWalletAddress.value
-  if (!walletAddress) {
-    error.value = 'Wallet non connesso'
-    return
-  }
-
-  loading.value = true
-  error.value = null
-
+// Login
+const handleLogin = async () => {
   try {
-    const { data: challengeData } = await api.post('/auth/challenge', {
-      wallet: walletAddress,
-    })
-
-    sessionStorage.setItem('phantom_pending_action', 'sign')
-    sessionStorage.setItem('phantom_challenge_nonce', challengeData.nonce)
-
-    await phantom.signMessage(challengeData.nonce)
-  } catch (e) {
-    console.error('Challenge error:', e)
-    error.value = 'Errore durante la richiesta di challenge'
-    loading.value = false
+    const success = await login()
+    if (success) router.visit(route('admin.dashboard'))
+  } catch {
+    // Error handled in composable
   }
 }
 
-// ============================================
-// MOBILE: Gestisci risposta deep link
-// ============================================
-const handleDeepLink = async (url: string) => {
-  const pendingAction = sessionStorage.getItem('phantom_pending_action')
-  sessionStorage.removeItem('phantom_pending_action')
-
-  if (pendingAction === 'connect') {
-    const result = phantom.handleConnectResponse(url)
-    if (result) {
-      mobileConnected.value = true
-      mobileWalletAddress.value = result.publicKey
-      error.value = null
-    } else {
-      error.value = 'Connessione a Phantom fallita'
-    }
-    loading.value = false
-  } else if (pendingAction === 'sign') {
-    const result = phantom.handleSignResponse(url)
-    if (result) {
-      const walletAddress = sessionStorage.getItem('phantom_public_key')
-
-      if (!walletAddress) {
-        error.value = 'Sessione scaduta. Riprova.'
-        loading.value = false
-        return
-      }
-
-      try {
-        const { data } = await api.post('/auth/verify', {
-          wallet: walletAddress,
-          signature: Array.from(result.signature),
-        })
-
-        if (data.success) {
-          sessionStorage.removeItem('phantom_challenge_nonce')
-          router.visit(data.redirect)
-        }
-      } catch (e: any) {
-        console.error('Verify error:', e)
-        error.value = e.response?.data?.error || 'Errore durante il login'
-      }
-    } else {
-      error.value = 'Firma rifiutata o fallita'
-    }
-    loading.value = false
-  }
-}
-
-// ============================================
-// MOBILE: Disconnetti
-// ============================================
-const mobileDisconnect = () => {
-  phantom.disconnect()
-  mobileConnected.value = false
-  mobileWalletAddress.value = null
-  error.value = null
-}
-
-// ============================================
-// DESKTOP: Handlers wallet adapter
-// ============================================
-const cancelConnection = () => {
-  connectionCancelled.value = true
-  loading.value = false
-  error.value = null
-}
-
-const handleConnect = async () => {
-  loading.value = true
-  error.value = null
-  connectionCancelled.value = false
-
+// Step 1: Generate wallet
+const handleGenerateWallet = async () => {
+  if (!form.value.name) return
+  
   try {
-    const phantomWallet = wallets.value.find((w: any) => w.adapter.name === 'Phantom')
-    if (phantomWallet) {
-      select(phantomWallet.adapter.name)
-    }
-    await connect()
+    const result = await generateWallet()
+    publicKey.value = result.publicKey
+    mode.value = 'register-recovery'
   } catch (e: any) {
-    console.error('Connect error:', e)
-    if (connectionCancelled.value) return
-
-    if (e.name === 'WalletConnectionError' || e.message?.includes('User rejected')) {
-      error.value = 'Connessione rifiutata'
-    } else {
-      error.value = 'Errore di connessione. Riprova.'
-    }
-  } finally {
-    loading.value = false
+    error.value = e.message
   }
 }
 
-const handleDisconnect = async () => {
+// Step 2: Create passkey and register
+const handleRegister = async () => {
   try {
-    await disconnect()
-    error.value = null
-  } catch (e) {
-    console.error('Disconnect error:', e)
+    const success = await register(form.value.name, form.value.email || undefined)
+    if (success) {
+      clearTempMnemonic()
+      mode.value = 'success'
+    }
+  } catch {
+    // Error handled in composable
   }
 }
 
-const signAndLogin = async () => {
-  if (!publicKey.value) {
-    error.value = 'Wallet non connesso'
-    return
-  }
+const goToDashboard = () => router.visit(route('admin.dashboard'))
 
-  loading.value = true
-  error.value = null
-
-  try {
-    const walletAddress = publicKey.value.toBase58()
-
-    const { data: challengeData } = await api.post('/auth/challenge', {
-      wallet: walletAddress,
-    })
-
-    const message = new TextEncoder().encode(challengeData.nonce)
-    const signature = await wallet.value!.adapter.signMessage!(message)
-
-    const { data } = await api.post('/auth/verify', {
-      wallet: walletAddress,
-      signature: Array.from(signature),
-    })
-
-    if (data.success) {
-      router.visit(data.redirect)
-    }
-  } catch (e: any) {
-    console.error('Sign and login error:', e)
-
-    if (e.name === 'WalletSignMessageError' || e.message?.includes('User rejected')) {
-      error.value = 'Firma rifiutata'
-    } else if (e.response?.status === 401) {
-      error.value = 'Firma non valida. Riprova.'
-    } else {
-      error.value = e.response?.data?.error || 'Errore durante il login'
-    }
-  } finally {
-    loading.value = false
-  }
-}
-
-// ============================================
-// Lifecycle
-// ============================================
 onMounted(async () => {
-  // Controlla se window.phantom.solana esiste (estensione desktop o Phantom browser)
-  // Aspetta un attimo perché potrebbe essere iniettato dopo il DOM ready
-  await new Promise((r) => setTimeout(r, 300))
-  hasPhantomExtension.value = !!window.phantom?.solana
-
-  if (hasPhantomExtension.value) {
-    // Auto-connect se siamo nel browser Phantom
-    try {
-      const resp = await window.phantom.solana.connect({ onlyIfTrusted: true })
-      if (resp.publicKey) {
-        console.log('Auto-connected in Phantom browser')
-      }
-    } catch (e) {
-      // Non era già connesso
-    }
-    return
-  }
-
-  // Mobile: controlla se c'è una connessione salvata
-  if (isMobileDevice.value) {
-    const storedPk = phantom.getStoredPublicKey()
-    if (storedPk) {
-      mobileConnected.value = true
-      mobileWalletAddress.value = storedPk
-    }
-
-    // Ascolta deep link di ritorno via Capacitor App plugin
-    if (Capacitor.isNativePlatform()) {
-      CapacitorApp.addListener('appUrlOpen', (event) => {
-        if (event.url?.startsWith('ecothread://phantom')) {
-          handleDeepLink(event.url)
-        }
-      })
-    }
-
-    // Fallback: controlla URL params per risposta Phantom (browser redirect)
-    const currentUrl = window.location.href
-    if (currentUrl.includes('phantom_encryption_public_key') || currentUrl.includes('errorCode')) {
-      const pendingAction = sessionStorage.getItem('phantom_pending_action')
-      if (pendingAction) {
-        handleDeepLink(currentUrl)
-      }
-    }
-  }
-})
-
-// ============================================
-// Watchers
-// ============================================
-watch(connected, (isConnected) => {
-  if (isConnected && publicKey.value) {
-    error.value = null
-  }
-})
-
-watch(connecting, (isConnecting) => {
-  if (!isConnecting) {
-    loading.value = false
-  }
+  const hasSession = await checkSession()
+  if (hasSession) router.visit(route('admin.dashboard'))
 })
 </script>
 
 <style scoped>
-.v-btn {
-  transition: all 0.2s ease;
+.recovery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
 
-.v-alert {
-  transition: all 0.3s ease;
+@media (max-width: 600px) {
+  .recovery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.recovery-word {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  background: white;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+
+.word-num {
+  color: #666;
+  min-width: 24px;
 }
 </style>

@@ -148,15 +148,15 @@ export function useSolana() {
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
 
       // Costruisci l'istruzione
-     const instruction = await program.methods
-      .createProduct(productId)
-      .accounts({
-        product: productPDA,
-        creator: creatorPubkey,
-        feePayer: feePayerPubkey,  // ← Aggiungi
-        systemProgram: SystemProgram.programId,
-      })
-      .instruction()
+      const instruction = await program.methods
+        .createProduct(productId)
+        .accounts({
+          product: productPDA,
+          creator: creatorPubkey,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction()
+
       // Crea la transazione con fee payer EcoThread
       const transaction = new Transaction({
         feePayer: feePayerPubkey,
@@ -261,7 +261,6 @@ export function useSolana() {
           product: productPDA,
           event: eventPDA,
           registrant: registrantPubkey,
-          feePayer: feePayerPubkey,  // ← Aggiungi
           systemProgram: SystemProgram.programId,
         })
         .instruction()

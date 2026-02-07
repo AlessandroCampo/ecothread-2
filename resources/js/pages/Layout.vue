@@ -36,9 +36,22 @@
 <script setup>
 import AppHeader from "@/components/AppHeader.vue";
 import { useSnack } from '@/composables/useSnack'
+import { onMounted, watch } from 'vue'
+import { usePage } from '@inertiajs/vue3'
+import { usePasskeyAuth } from '@/composables/usePasskeyAuth'
+
+const page = usePage()
+const { initFromUser } = usePasskeyAuth()
 
 const { snack, visible, hide } = useSnack()
+onMounted(() => {
+  initFromUser(page.props.user)
+})
 
+// Sincronizza quando cambia (es. dopo login/logout)
+watch(() => page.props.user, (newUser) => {
+  initFromUser(newUser)
+})
 
 </script>
 

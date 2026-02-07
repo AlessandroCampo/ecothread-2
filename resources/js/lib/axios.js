@@ -12,11 +12,10 @@ const api = axios.create({
 
 // Aggiungi CSRF token automaticamente
 api.interceptors.request.use((config) => {
-  const token = document.querySelector('meta[name="csrf-token"]')?.content
+  const token = localStorage.getItem('ecothread_session')
   if (token) {
-    config.headers['X-CSRF-TOKEN'] = token
+    config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
-
 export default api

@@ -77,6 +77,16 @@
         },
         {
           "name": "registrant",
+          "docs": [
+            "L'azienda che registra l'evento (firma per attestare)"
+          ],
+          "signer": true
+        },
+        {
+          "name": "fee_payer",
+          "docs": [
+            "EcoThread paga rent e fee"
+          ],
           "writable": true,
           "signer": true
         },
@@ -146,6 +156,16 @@
         },
         {
           "name": "creator",
+          "docs": [
+            "L'azienda che crea il prodotto (firma per attestare)"
+          ],
+          "signer": true
+        },
+        {
+          "name": "fee_payer",
+          "docs": [
+            "EcoThread paga rent e fee"
+          ],
           "writable": true,
           "signer": true
         },

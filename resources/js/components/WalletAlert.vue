@@ -1,43 +1,45 @@
 <template>
- <!-- Alert: Wallet non connesso - CON BOTTONE CONNECT -->
-<v-alert 
-  v-if="!isWalletConnected" 
-  type="warning" 
-  variant="tonal"
-  class="mb-4"
->
-  <div class="d-flex align-center justify-space-between">
-    <div>
-      <v-alert-title>Wallet non connesso</v-alert-title>
-      Per scrivere dati on-chain devi connettere Phantom.
+  <v-alert 
+    v-if="!isWalletConnected" 
+    type="warning" 
+    variant="tonal"
+    class="mb-4"
+  >
+    <div class="d-flex align-center justify-space-between">
+      <div>
+        <v-alert-title>Accesso richiesto</v-alert-title>
+        Per scrivere dati on-chain devi effettuare il login.
+      </div>
+      <v-btn
+        color="warning"
+        variant="flat"
+        size="small"
+        :loading="isLoading"
+        @click="handleLogin"
+      >
+        <v-icon start>mdi-fingerprint</v-icon>
+        Accedi con Passkey
+      </v-btn>
     </div>
-    <v-btn
-      color="warning"
-      variant="flat"
-      size="small"
-      :loading="connecting"
-      @click="connectWallet"
-    >
-      <v-icon start>mdi-wallet</v-icon>
-      Connetti
-    </v-btn>
-  </div>
-</v-alert>
-  
+  </v-alert>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
+import { usePasskeyAuth } from '@/composables/usePasskeyAuth'
 
-import { useSolana } from '@/composables/useSolana'
+const page = usePage()
+const { login, isLoading } = usePasskeyAuth()
 
-const { isWalletConnected, connectPhantom, connecting } = useSolana()
+// Usa i props Inertia come source of truth
+const isWalletConnected = computed(() => !!page.props.user?.wallet_address)
 
-async function connectWallet() {
+async function handleLogin() {
   try {
-    await connectPhantom()
+    await login()
   } catch (e) {
-    console.error('Connection failed:', e)
+    console.error('Login failed:', e)
   }
 }
-
 </script>

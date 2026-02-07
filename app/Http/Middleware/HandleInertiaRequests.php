@@ -37,10 +37,19 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+            $user = FacadesAuth::user();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
-            'user' => FacadesAuth::user(),
+              'user' => $user ? [
+            'id' => $user->id,
+            'name' => $user->name,
+            'wallet_address' => $user->wallet_address,
+            // Dati wallet - sicuri perché criptati e servono la passkey
+            'encrypted_private_key' => $user->encrypted_private_key,
+            'encryption_salt' => $user->encryption_salt,
+        ] : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
