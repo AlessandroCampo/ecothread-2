@@ -14,7 +14,7 @@ return [
     
     'relying_party' => [
         'name' => env('APP_NAME', 'EcoThread'),
-        'id' => env('WEBAUTHN_RP_ID', null), // null = usa il dominio corrente
+        'id' => env('WEBAUTHN_ID ', null), // null = usa il dominio corrente
     ],
 
     /*
