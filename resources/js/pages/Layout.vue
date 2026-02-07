@@ -38,8 +38,7 @@ import AppHeader from "@/components/AppHeader.vue";
 import { useSnack } from '@/composables/useSnack'
 import { onMounted, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import { usePasskeyAuth } from '@/composables/usePasskeyAuth'
-
+import { usePasskeyAuth } from "@/composables/usePasskeyAuth";
 const page = usePage()
 const { initFromUser } = usePasskeyAuth()
 

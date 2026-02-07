@@ -174,7 +174,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { usePasskeyAuth } from '@/composables/usePasskeyauth'
+import { usePasskeyAuth } from '@/composables/usePasskeyAuth'
 import { route } from 'ziggy-js'
 
 const {
