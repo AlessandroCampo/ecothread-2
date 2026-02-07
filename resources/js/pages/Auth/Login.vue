@@ -78,7 +78,7 @@
           <!-- ================================ -->
           <!-- REGISTER: RECOVERY PHRASE -->
           <!-- ================================ -->
-          <div v-else-if="mode === 'register-recovery'">
+            <div v-else-if="mode === 'register-recovery'">
             <v-card-subtitle class="text-center mb-4">
               Salva la Recovery Phrase
             </v-card-subtitle>
@@ -176,6 +176,8 @@ import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { usePasskeyAuth } from '@/composables/usePasskeyAuth'
 import { route } from 'ziggy-js'
+import { useSnack } from '@/composables/useSnack'
+const { success: showSuccess, error: showError } = useSnack()
 
 const {
   isPasskeySupported,
@@ -237,6 +239,28 @@ const handleRegister = async () => {
 
 const goToDashboard = () => router.visit(route('admin.dashboard'))
 
+
+const showRecoveryWords = ref(false)
+
+const copyRecoveryPhrase = async () => {
+  const phrase = mnemonicWords.value.join(' ')
+  await navigator.clipboard.writeText(phrase)
+  // Se hai useSnack:
+  showSuccess('Recovery phrase copiata!')
+}
+
+const downloadRecoveryPhrase = () => {
+  const phrase = mnemonicWords.value.map((w, i) => `${i + 1}. ${w}`).join('\n')
+  const content = `ECOTHREAD RECOVERY PHRASE\n${'='.repeat(30)}\n\n${phrase}\n\n${'='.repeat(30)}\nWallet: ${publicKey.value}\n\nCONSERVA QUESTO FILE IN UN LUOGO SICURO!`
+  
+  const blob = new Blob([content], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'ecothread-recovery-phrase.txt'
+  a.click()
+  URL.revokeObjectURL(url)
+}
 onMounted(async () => {
   const hasSession = await checkSession()
   if (hasSession) router.visit(route('admin.dashboard'))
@@ -269,5 +293,44 @@ onMounted(async () => {
 .word-num {
   color: #666;
   min-width: 24px;
+}
+
+.recovery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+@media (min-width: 600px) {
+  .recovery-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .recovery-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.recovery-word {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: white;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.word-num {
+  color: #666;
+  font-size: 11px;
+  min-width: 20px;
+}
+
+.word-text {
+  font-weight: 500;
 }
 </style>
