@@ -48,7 +48,11 @@ let tempKeypair: Keypair | null = null
 
 export function usePasskeyAuth() {
 
-  const isPasskeySupported = computed(() => {
+ const isPasskeySupported = computed(() => {
+    // Su Capacitor, assumiamo supportato se siamo in app nativa
+    if ((window as any).Capacitor?.isNativePlatform()) {
+      return true
+    }
     return !!window.PublicKeyCredential
   })
 
