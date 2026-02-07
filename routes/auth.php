@@ -31,5 +31,4 @@ Route::prefix('auth')->group(function () {
 
 // Logout (richiede auth)
 Route::post('/auth/logout', [AuthController::class, 'logout'])
-    ->middleware('auth')
-    ->name('logout');
+    ->middleware('auth');
