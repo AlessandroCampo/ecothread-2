@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Laragear\WebAuthn\Http\Requests\AssertionRequest;
 use Laragear\WebAuthn\Http\Requests\AssertedRequest;
@@ -47,6 +48,21 @@ class AuthController extends Controller
 
     public function registerVerify(Request $request, AttestationValidator $validator): JsonResponse
 {
+
+    Log::info('Register verify - raw request', [
+            'all' => $request->all(),
+        ]);
+        
+        // Decodifica clientDataJSON se presente
+        $clientDataJSON = $request->input('response.clientDataJSON');
+        if ($clientDataJSON) {
+            $decoded = json_decode(base64_decode($clientDataJSON), true);
+            Log::info('Register - WebAuthn origin', [
+                'origin' => $decoded['origin'] ?? 'NOT FOUND',
+            ]);
+        }
+
+
     $validated = $request->validate([
         'encrypted_private_key' => 'required|string',
         'encryption_salt' => 'required|string',
