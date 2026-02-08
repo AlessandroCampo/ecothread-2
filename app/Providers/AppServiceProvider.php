@@ -24,6 +24,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $link = public_path('storage');
+    $target = storage_path('app/public');
+    
+    if (!is_link($link) && !file_exists($link)) {
+        @symlink($target, $link);
+    }
+
         if (config('app.env') === 'production') {
         URL::forceScheme('https');
     }
