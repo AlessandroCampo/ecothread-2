@@ -233,6 +233,17 @@
                         </v-tab>
                       </v-tabs>
                       
+                      <v-alert
+                        v-if="scannerError"
+                        type="error"
+                        variant="tonal"
+                        class="mb-4"
+                        closable
+                        @click:close="scannerError = null"
+                      >
+                        {{ scannerError }}
+                      </v-alert>
+
                       <v-tabs-window v-model="scannerTab">
                         <!-- QR Scanner -->
                         <v-tabs-window-item value="scan">
@@ -288,16 +299,6 @@
                             Cerca prodotto
                           </v-btn>
                           
-                          <v-alert 
-                            v-if="searchError" 
-                            type="error" 
-                            variant="tonal" 
-                            class="mt-4"
-                            closable
-                            @click:close="searchError = null"
-                          >
-                            {{ searchError }}
-                          </v-alert>
                         </v-tabs-window-item>
                       </v-tabs-window>
                     </v-card-text>
@@ -512,7 +513,7 @@ const scannerTab = ref('scan')
 const cameraActive = ref(false)
 const searchQuery = ref('')
 const searching = ref(false)
-const searchError = ref<string | null>(null)
+const scannerError = ref<string | null>(null)
 
 let mediaStream: MediaStream | null = null
 let scanInterval: number | null = null
@@ -627,9 +628,9 @@ async function startCamera() {
       // Start scanning
       scanInterval = window.setInterval(scanQRCode, 200)
     }
-  } catch (error) {
-    console.error('Camera error:', error)
-    searchError.value = 'Impossibile accedere alla fotocamera'
+  } catch (err) {
+    console.error('Camera error:', err)
+    scannerError.value = 'Impossibile accedere alla fotocamera. Verifica i permessi nelle impostazioni.'
   }
 }
 
@@ -673,7 +674,7 @@ function handleQRResult(data: string) {
   if (data.includes('/passport/') || data.includes('/product/') || data.includes('verify')) {
     window.location.href = data
   } else {
-    searchError.value = 'QR code non riconosciuto come prodotto EcoThread'
+    scannerError.value = 'QR code non riconosciuto come prodotto EcoThread'
   }
 }
 
@@ -681,7 +682,7 @@ async function searchProduct() {
   if (!searchQuery.value) return
   
   searching.value = true
-  searchError.value = null
+  scannerError.value = null
   
   try {
     // Cerca per passport number o product ID
@@ -690,10 +691,10 @@ async function searchProduct() {
     if (data.success && data.url) {
       router.visit(data.url)
     } else {
-      searchError.value = data.message || 'Prodotto non trovato'
+      scannerError.value = data.message || 'Prodotto non trovato'
     }
   } catch (error) {
-    searchError.value = 'Errore durante la ricerca'
+    scannerError.value = 'Errore durante la ricerca'
   } finally {
     searching.value = false
   }

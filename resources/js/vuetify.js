@@ -119,7 +119,12 @@ const vuetify = createVuetify({
     VCard: {
       rounded: 'lg',
       elevation: 2,
+      maxWidth: "95vw"
+      
     },
+    VDialog: {
+      maxWidth: "min(700px, 98dvw)"
+    }
   },
 })
 

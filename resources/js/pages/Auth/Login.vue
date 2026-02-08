@@ -1,8 +1,8 @@
 <template>
-  <v-container class="fill-height d-flex h-screen bg-primary-darken-1" fluid>
-    <v-row justify="center" align="center">
+  <v-container class="login-container fill-height bg-primary-darken-1" fluid>
+    <v-row justify="center" align="center" class="login-row">
       <v-col cols="12" sm="8" md="5" lg="4">
-        <v-card class="pa-6" elevation="8">
+        <v-card class="pa-4 pa-sm-6 login-card" elevation="8">
           <!-- Logo -->
           <v-card-title class="text-center mb-4 d-flex justify-center">
             <img src="/logo.png" class="d-none d-md-block" width="300" />
@@ -76,35 +76,63 @@
           </div>
 
           <!-- ================================ -->
-          <!-- REGISTER: RECOVERY PHRASE -->
+          <!-- REGISTER: RECOVERY -->
           <!-- ================================ -->
-            <div v-else-if="mode === 'register-recovery'">
+          <div v-else-if="mode === 'register-recovery'">
             <v-card-subtitle class="text-center mb-4">
-              Salva la Recovery Phrase
+              Salva il backup del wallet
             </v-card-subtitle>
 
-            <v-alert type="warning" variant="tonal" class="mb-4">
-              <strong>IMPORTANTE:</strong> Queste 24 parole sono l'unico modo per recuperare il wallet.
-              Scrivile su carta!
+            <v-alert type="info" variant="tonal" class="mb-4">
+              Per recuperare il tuo wallet in futuro avrai bisogno di <strong>entrambi</strong>:
+              il file di backup e il codice di recupero.
             </v-alert>
 
-            <v-card variant="outlined" class="pa-4 mb-4 bg-grey-lighten-4">
-              <div class="recovery-grid">
-                <div v-for="(word, i) in mnemonicWords" :key="i" class="recovery-word">
-                  <span class="word-num">{{ i + 1 }}.</span>
-                  <span>{{ word }}</span>
-                </div>
+            <!-- Recovery Code -->
+            <v-card variant="outlined" class="pa-3 pa-sm-4 mb-4">
+              <div class="d-flex align-center justify-space-between mb-2">
+                <span class="text-body-2 font-weight-medium">Codice di Recupero</span>
+                <v-btn variant="text" size="small" color="primary" @click="copyRecoveryCode">
+                  <v-icon start size="small">mdi-content-copy</v-icon>
+                  Copia
+                </v-btn>
+              </div>
+              <div class="recovery-code text-center pa-3 bg-grey-lighten-4 rounded">
+                {{ recoveryCode }}
+              </div>
+              <div class="text-caption text-medium-emphasis mt-2 text-center">
+                Annota questo codice in un posto sicuro
               </div>
             </v-card>
 
-            <v-card variant="outlined" class="pa-3 mb-4">
-              <div class="text-caption text-medium-emphasis">Wallet Address</div>
-              <code>{{ publicKey }}</code>
+            <!-- Download file -->
+            <v-card variant="outlined" class="pa-3 pa-sm-4 mb-4">
+              <div class="text-body-2 font-weight-medium mb-3">File di Backup</div>
+              <v-btn
+                color="primary"
+                variant="tonal"
+                block
+                :loading="isDownloading"
+                @click="downloadRecoveryFile"
+              >
+                <v-icon start>mdi-download</v-icon>
+                Scarica {{ form.name }}.ecothread
+              </v-btn>
+              <div class="text-caption text-medium-emphasis mt-2 text-center">
+                Conserva questo file al sicuro (cloud, USB, email a te stesso)
+              </div>
             </v-card>
 
+            <!-- Wallet address -->
+            <v-card variant="flat" class="pa-3 mb-4 bg-grey-lighten-4">
+              <div class="text-caption text-medium-emphasis">Indirizzo Wallet</div>
+              <code class="text-body-2 wallet-address">{{ publicKey }}</code>
+            </v-card>
+
+            <!-- Conferma -->
             <v-checkbox v-model="recoveryConfirmed" color="primary" class="mb-2">
               <template #label>
-                <span class="text-body-2">Ho salvato la recovery phrase</span>
+                <span class="text-body-2">Ho salvato il codice e scaricato il file</span>
               </template>
             </v-checkbox>
 
@@ -112,11 +140,15 @@
               color="primary"
               size="large"
               block
-              :disabled="!recoveryConfirmed"
+              :disabled="!recoveryConfirmed || !fileDownloaded"
               @click="mode = 'register-passkey'"
             >
               Continua
             </v-btn>
+
+            <div class="text-center mt-4">
+              <v-btn variant="text" @click="mode = 'register-info'">← Indietro</v-btn>
+            </div>
           </div>
 
           <!-- ================================ -->
@@ -157,7 +189,7 @@
 
               <v-card variant="outlined" class="pa-3 mb-6 text-left">
                 <div class="text-caption text-medium-emphasis">Wallet</div>
-                <code>{{ walletAddress }}</code>
+                <code class="wallet-address">{{ walletAddress }}</code>
               </v-card>
 
               <v-btn color="primary" size="large" block @click="goToDashboard">
@@ -177,6 +209,7 @@ import { router } from '@inertiajs/vue3'
 import { usePasskeyAuth } from '@/composables/usePasskeyAuth'
 import { route } from 'ziggy-js'
 import { useSnack } from '@/composables/useSnack'
+
 const { success: showSuccess, error: showError } = useSnack()
 
 const {
@@ -188,8 +221,9 @@ const {
   register,
   login,
   checkSession,
-  getTempMnemonic,
-  clearTempMnemonic,
+  createRecoveryFile,
+  getTempRecoveryCode,
+  clearTempData,
 } = usePasskeyAuth()
 
 type Mode = 'login' | 'register-info' | 'register-recovery' | 'register-passkey' | 'success'
@@ -198,8 +232,10 @@ const mode = ref<Mode>('login')
 const form = ref({ name: '', email: '' })
 const publicKey = ref('')
 const recoveryConfirmed = ref(false)
+const isDownloading = ref(false)
+const fileDownloaded = ref(false)
 
-const mnemonicWords = computed(() => getTempMnemonic()?.split(' ') || [])
+const recoveryCode = computed(() => getTempRecoveryCode() || '')
 
 // Login
 const handleLogin = async () => {
@@ -214,13 +250,41 @@ const handleLogin = async () => {
 // Step 1: Generate wallet
 const handleGenerateWallet = async () => {
   if (!form.value.name) return
-  
+
   try {
     const result = await generateWallet()
     publicKey.value = result.publicKey
+    fileDownloaded.value = false
+    recoveryConfirmed.value = false
     mode.value = 'register-recovery'
   } catch (e: any) {
     error.value = e.message
+  }
+}
+
+// Copy recovery code
+const copyRecoveryCode = async () => {
+  await navigator.clipboard.writeText(recoveryCode.value)
+  showSuccess('Codice copiato!')
+}
+
+// Download recovery file
+const downloadRecoveryFile = async () => {
+  isDownloading.value = true
+  try {
+    const blob = await createRecoveryFile(form.value.name)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${form.value.name.replace(/\s+/g, '-').toLowerCase()}.ecothread`
+    a.click()
+    URL.revokeObjectURL(url)
+    fileDownloaded.value = true
+    showSuccess('File scaricato!')
+  } catch (e: any) {
+    showError(e.message)
+  } finally {
+    isDownloading.value = false
   }
 }
 
@@ -229,7 +293,7 @@ const handleRegister = async () => {
   try {
     const success = await register(form.value.name, form.value.email || undefined)
     if (success) {
-      clearTempMnemonic()
+      clearTempData()
       mode.value = 'success'
     }
   } catch {
@@ -239,28 +303,6 @@ const handleRegister = async () => {
 
 const goToDashboard = () => router.visit(route('admin.dashboard'))
 
-
-const showRecoveryWords = ref(false)
-
-const copyRecoveryPhrase = async () => {
-  const phrase = mnemonicWords.value.join(' ')
-  await navigator.clipboard.writeText(phrase)
-  // Se hai useSnack:
-  showSuccess('Recovery phrase copiata!')
-}
-
-const downloadRecoveryPhrase = () => {
-  const phrase = mnemonicWords.value.map((w, i) => `${i + 1}. ${w}`).join('\n')
-  const content = `ECOTHREAD RECOVERY PHRASE\n${'='.repeat(30)}\n\n${phrase}\n\n${'='.repeat(30)}\nWallet: ${publicKey.value}\n\nCONSERVA QUESTO FILE IN UN LUOGO SICURO!`
-  
-  const blob = new Blob([content], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'ecothread-recovery-phrase.txt'
-  a.click()
-  URL.revokeObjectURL(url)
-}
 onMounted(async () => {
   const hasSession = await checkSession()
   if (hasSession) router.visit(route('admin.dashboard'))
@@ -268,69 +310,44 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.recovery-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+.login-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 16px;
+}
+
+.login-row {
+  min-height: 100%;
+}
+
+.login-card {
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+
+.recovery-code {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: #1a1a1a;
+  word-break: break-all;
+}
+
+.wallet-address {
+  word-break: break-all;
 }
 
 @media (max-width: 600px) {
-  .recovery-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .login-card {
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
   }
-}
 
-.recovery-word {
-  display: flex;
-  gap: 4px;
-  padding: 8px;
-  background: white;
-  border-radius: 4px;
-  font-family: monospace;
-  font-size: 0.875rem;
-}
-
-.word-num {
-  color: #666;
-  min-width: 24px;
-}
-
-.recovery-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-@media (min-width: 600px) {
-  .recovery-grid {
-    grid-template-columns: repeat(3, 1fr);
+  .recovery-code {
+    font-size: 0.95rem;
+    letter-spacing: 1px;
   }
-}
-
-@media (min-width: 960px) {
-  .recovery-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.recovery-word {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: white;
-  border-radius: 6px;
-  font-family: monospace;
-  font-size: 13px;
-}
-
-.word-num {
-  color: #666;
-  font-size: 11px;
-  min-width: 20px;
-}
-
-.word-text {
-  font-weight: 500;
 }
 </style>

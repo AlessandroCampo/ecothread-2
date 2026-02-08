@@ -42,7 +42,6 @@
         :disabled="isEditMode || !isWalletConnected"
         :readonly="isEditMode"
         variant="outlined"
-        bg-color="primary-lighten-5"
         class="mb-2"
       >
         <template #prepend-inner>
@@ -50,32 +49,7 @@
         </template>
       </v-text-field>
 
-          <v-alert
-   color="info" 
-        variant="tonal" 
-        density="compact"
-        class="mb-5"
-        v-if="!isEditMode"
-
->
-  <template #prepend>
-    <v-checkbox
-      v-model="confirmedImmutability"
-      density="compact"
-      hide-details
-      class="mr-n2"
-    />
-  </template>
-  <div class="text-body-2">
-    <strong>Il Product ID sarà registrato permanentemente su blockchain</strong> 
-          come prova della creazione. Tutti gli altri dati (nome, descrizione, immagine...) 
-          potranno essere modificati in seguito.
-  </div>
-</v-alert>
-
   
-      <v-divider v-if="!isEditMode" class="my-5 border-opacity-100" thickness="1.5" color="primary-lighten-4" />
-
       <!-- Nome commerciale -->
       <v-text-field
         v-model="form.name"
@@ -223,6 +197,29 @@
         </div>
       </v-expand-transition>
 
+            <v-alert
+   color="info" 
+        variant="tonal" 
+        density="compact"
+        class="mb-5"
+        v-if="!isEditMode"
+
+>
+  <template #prepend>
+    <v-checkbox
+      v-model="confirmedImmutability"
+      density="compact"
+      hide-details
+      class="mr-n2"
+    />
+  </template>
+  <div class="text-body-2">
+    <strong>Il Product ID sarà registrato permanentemente su blockchain</strong> 
+          come prova della creazione. Tutti gli altri dati (nome, descrizione, immagine...) 
+          potranno essere modificati in seguito.
+  </div>
+</v-alert>
+
       <v-alert 
         v-if="error && !transactionStep" 
         type="error" 
@@ -232,6 +229,7 @@
       >
         {{ error }}
       </v-alert>
+      
 
     </v-card-text>
 

@@ -25,7 +25,6 @@
           label="Product ID"
           readonly
           disabled
-           bg-color="primary-lighten-5"
           prepend-inner-icon="mdi-package-variant"
           class="mb-3"
           :error-messages="errors.product_id"

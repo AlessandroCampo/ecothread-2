@@ -35,6 +35,17 @@ interface User {
   encryption_salt?: string
 }
 
+interface RecoveryFileData {
+  version: number
+  type: 'ecothread-wallet-backup'
+  company_name: string
+  wallet_address: string
+  created_at: string
+  encrypted: string
+  salt: string
+  iv: string
+}
+
 // ============================================
 // STATE
 // ============================================
@@ -49,6 +60,162 @@ const error = ref<string | null>(null)
 let decryptedKeypair: Keypair | null = null
 let tempMnemonic: string | null = null
 let tempKeypair: Keypair | null = null
+let tempRecoveryCode: string | null = null
+let tempPublicKey: string | null = null
+
+// ============================================
+// HELPERS (encoding)
+// ============================================
+
+function bufferToBase64(buffer: Uint8Array): string {
+  return btoa(String.fromCharCode(...buffer))
+}
+
+function base64ToBuffer(base64: string): Uint8Array {
+  return new Uint8Array(atob(base64).split('').map(c => c.charCodeAt(0)))
+}
+
+// ============================================
+// HELPERS (wallet encryption - passkey based)
+// ============================================
+
+async function deriveKey(salt: Uint8Array): Promise<CryptoKey> {
+  const secret = new TextEncoder().encode('ecothread-wallet-key-v1')
+  
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', secret, 'PBKDF2', false, ['deriveBits', 'deriveKey']
+  )
+  
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  )
+}
+
+async function encryptPrivateKey(privateKey: Uint8Array, salt: Uint8Array): Promise<string> {
+  const key = await deriveKey(salt)
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    privateKey
+  )
+
+  const combined = new Uint8Array(iv.length + encrypted.byteLength)
+  combined.set(iv)
+  combined.set(new Uint8Array(encrypted), iv.length)
+  
+  return bufferToBase64(combined)
+}
+
+async function decryptPrivateKey(encryptedBase64: string, salt: Uint8Array): Promise<Uint8Array> {
+  const key = await deriveKey(salt)
+  const combined = base64ToBuffer(encryptedBase64)
+  
+  const iv = combined.slice(0, 12)
+  const ciphertext = combined.slice(12)
+  
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    ciphertext
+  )
+  
+  return new Uint8Array(decrypted)
+}
+
+// ============================================
+// HELPERS (recovery file encryption - code based)
+// ============================================
+
+function generateRecoveryCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no 0,O,1,I,L
+  const segments: string[] = []
+  
+  for (let s = 0; s < 4; s++) {
+    let segment = ''
+    for (let i = 0; i < 4; i++) {
+      segment += chars[Math.floor(Math.random() * chars.length)]
+    }
+    segments.push(segment)
+  }
+  
+  return segments.join('-') // es: "ECOT-X7K9-M2NP-VQ4R"
+}
+
+async function deriveKeyFromCode(code: string, salt: Uint8Array): Promise<CryptoKey> {
+  const encoder = new TextEncoder()
+  const normalizedCode = code.replace(/-/g, '').toUpperCase()
+  
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(normalizedCode),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  )
+  
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  )
+}
+
+async function encryptMnemonic(
+  mnemonic: string, 
+  recoveryCode: string
+): Promise<{ encrypted: string; salt: string; iv: string }> {
+  const encoder = new TextEncoder()
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  
+  const key = await deriveKeyFromCode(recoveryCode, salt)
+  
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encoder.encode(mnemonic)
+  )
+  
+  return {
+    encrypted: bufferToBase64(new Uint8Array(encrypted)),
+    salt: bufferToBase64(salt),
+    iv: bufferToBase64(iv)
+  }
+}
+
+async function decryptMnemonic(
+  encryptedData: { encrypted: string; salt: string; iv: string },
+  recoveryCode: string
+): Promise<string> {
+  const decoder = new TextDecoder()
+  
+  const salt = base64ToBuffer(encryptedData.salt)
+  const iv = base64ToBuffer(encryptedData.iv)
+  const encrypted = base64ToBuffer(encryptedData.encrypted)
+  
+  const key = await deriveKeyFromCode(recoveryCode, salt)
+  
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encrypted
+  )
+  
+  return decoder.decode(decrypted)
+}
 
 // ============================================
 // COMPOSABLE
@@ -56,8 +223,7 @@ let tempKeypair: Keypair | null = null
 
 export function usePasskeyAuth() {
 
- const isPasskeySupported = computed(() => {
-    // Su Capacitor, assumiamo supportato se siamo in app nativa
+  const isPasskeySupported = computed(() => {
     if ((window as any).Capacitor?.isNativePlatform()) {
       return true
     }
@@ -68,8 +234,8 @@ export function usePasskeyAuth() {
   // GENERATE WALLET
   // ==========================================
 
-  const generateWallet = async (): Promise<{ mnemonic: string; publicKey: string }> => {
-    // Genera mnemonic con @scure/bip39 (browser-native!)
+  const generateWallet = async (): Promise<{ publicKey: string; recoveryCode: string }> => {
+    // Genera mnemonic con @scure/bip39
     const mnemonic = generateMnemonic(wordlist, 256) // 24 parole
     
     // Deriva seed
@@ -78,12 +244,92 @@ export function usePasskeyAuth() {
     // Usa i primi 32 byte per Solana keypair
     const keypair = Keypair.fromSeed(seed.slice(0, 32))
     
+    // Genera recovery code
+    const recoveryCode = generateRecoveryCode()
+    
+    // Salva temporaneamente
     tempMnemonic = mnemonic
     tempKeypair = keypair
+    tempRecoveryCode = recoveryCode
+    tempPublicKey = keypair.publicKey.toBase58()
     
     return {
-      mnemonic,
-      publicKey: keypair.publicKey.toBase58()
+      publicKey: tempPublicKey,
+      recoveryCode
+    }
+  }
+
+  // ==========================================
+  // CREATE RECOVERY FILE
+  // ==========================================
+
+  const createRecoveryFile = async (companyName: string): Promise<Blob> => {
+    if (!tempMnemonic || !tempRecoveryCode || !tempPublicKey) {
+      throw new Error('Wallet non generato')
+    }
+    
+    const { encrypted, salt, iv } = await encryptMnemonic(tempMnemonic, tempRecoveryCode)
+    
+    const recoveryData: RecoveryFileData = {
+      version: 1,
+      type: 'ecothread-wallet-backup',
+      company_name: companyName,
+      wallet_address: tempPublicKey,
+      created_at: new Date().toISOString(),
+      encrypted,
+      salt,
+      iv
+    }
+    
+    return new Blob(
+      [JSON.stringify(recoveryData, null, 2)],
+      { type: 'application/json' }
+    )
+  }
+
+  // ==========================================
+  // RECOVER FROM FILE
+  // ==========================================
+
+  const recoverFromFile = async (file: File, recoveryCode: string): Promise<string> => {
+    try {
+      const content = await file.text()
+      const data = JSON.parse(content) as RecoveryFileData
+      
+      if (data.type !== 'ecothread-wallet-backup') {
+        throw new Error('File non valido')
+      }
+      
+      const mnemonic = await decryptMnemonic(
+        { encrypted: data.encrypted, salt: data.salt, iv: data.iv },
+        recoveryCode
+      )
+      
+      // Valida che il mnemonic sia corretto
+      if (!validateMnemonic(mnemonic, wordlist)) {
+        throw new Error('Codice di recupero non valido')
+      }
+      
+      // Ricrea il keypair
+      const seed = mnemonicToSeedSync(mnemonic)
+      const keypair = Keypair.fromSeed(seed.slice(0, 32))
+      
+      // Verifica che l'indirizzo corrisponda
+      if (keypair.publicKey.toBase58() !== data.wallet_address) {
+        throw new Error('Codice di recupero non valido')
+      }
+      
+      // Salva per la registrazione
+      tempKeypair = keypair
+      tempMnemonic = mnemonic
+      tempPublicKey = data.wallet_address
+      
+      return data.wallet_address
+    } catch (e: any) {
+      if (e.name === 'OperationError') {
+        throw new Error('Codice di recupero non valido')
+      }
+      throw e
     }
   }
 
@@ -91,7 +337,7 @@ export function usePasskeyAuth() {
   // REGISTER
   // ==========================================
 
-  const register = async (name: string): Promise<boolean> => {
+  const register = async (name: string, email?: string): Promise<boolean> => {
     if (!tempKeypair) {
       throw new Error('Genera prima il wallet')
     }
@@ -103,6 +349,7 @@ export function usePasskeyAuth() {
       // 1. Ottieni opzioni dal server
       const { data: options } = await api.post('/auth/register/options', {
         name,
+        email,
         wallet_address: tempKeypair.publicKey.toBase58(),
       })
 
@@ -131,8 +378,13 @@ export function usePasskeyAuth() {
         isAuthenticated.value = true
         isWalletUnlocked.value = true
         decryptedKeypair = tempKeypair
+        
+        // Pulisci dati temporanei
         tempMnemonic = null
         tempKeypair = null
+        tempRecoveryCode = null
+        tempPublicKey = null
+        
         return true
       }
 
@@ -247,12 +499,27 @@ export function usePasskeyAuth() {
     const message = JSON.stringify(payload)
     const messageBytes = new TextEncoder().encode(message)
     
-    // Firma con @noble/ed25519
     const signature = nacl.sign.detached(messageBytes, decryptedKeypair!.secretKey)
-
 
     return {
       message,
+      signature: bufferToBase64(signature),
+      publicKey: decryptedKeypair!.publicKey.toBase58(),
+    }
+  }
+
+  const signTransaction = async (messageBytes: Uint8Array): Promise<{
+    signature: string
+    publicKey: string
+  }> => {
+    if (!decryptedKeypair) {
+      const unlocked = await unlockWallet()
+      if (!unlocked) throw new Error('Wallet non sbloccato')
+    }
+
+    const signature = nacl.sign.detached(messageBytes, decryptedKeypair!.secretKey)
+
+    return {
       signature: bufferToBase64(signature),
       publicKey: decryptedKeypair!.publicKey.toBase58(),
     }
@@ -293,7 +560,7 @@ export function usePasskeyAuth() {
   }
 
   // ==========================================
-  // RECOVERY
+  // RECOVERY (mnemonic diretto - legacy)
   // ==========================================
 
   const recoverFromMnemonic = async (mnemonic: string): Promise<string> => {
@@ -305,45 +572,39 @@ export function usePasskeyAuth() {
     const keypair = Keypair.fromSeed(seed.slice(0, 32))
 
     tempKeypair = keypair
-    return keypair.publicKey.toBase58()
+    tempPublicKey = keypair.publicKey.toBase58()
+    
+    return tempPublicKey
   }
 
-  const signTransaction = async (messageBytes: Uint8Array): Promise<{
-  signature: string
-  publicKey: string
-}> => {
-  if (!decryptedKeypair) {
-    const unlocked = await unlockWallet()
-    if (!unlocked) throw new Error('Wallet non sbloccato')
+  // ==========================================
+  // UTILITIES
+  // ==========================================
+
+  const getPublicKey = (): PublicKey | null => {
+    if (decryptedKeypair) {
+      return decryptedKeypair.publicKey
+    }
+    if (user.value?.wallet_address) {
+      return new PublicKey(user.value.wallet_address)
+    }
+    return null
   }
 
-  // Con tweetnacl (già installato)
-  const signature = nacl.sign.detached(messageBytes, decryptedKeypair!.secretKey)
-
-  return {
-    signature: bufferToBase64(Buffer.from(signature)),
-    publicKey: decryptedKeypair!.publicKey.toBase58(),
+  const initFromUser = (inertiaUser: User | null) => {
+    if (inertiaUser) {
+      user.value = inertiaUser
+      isAuthenticated.value = true
+      isWalletUnlocked.value = false
+    }
   }
-}
 
-
-const getPublicKey = (): PublicKey | null => {
-  if (decryptedKeypair) {
-    return decryptedKeypair.publicKey
+  const clearTempData = () => {
+    tempMnemonic = null
+    tempKeypair = null
+    tempRecoveryCode = null
+    tempPublicKey = null
   }
-  if (user.value?.wallet_address) {
-    return new PublicKey(user.value.wallet_address)
-  }
-  return null
-}
-
-const initFromUser = (inertiaUser: User | null) => {
-  if (inertiaUser) {
-    user.value = inertiaUser
-    isAuthenticated.value = true
-    isWalletUnlocked.value = false // Wallet sempre bloccato al refresh
-  }
-}
 
   // ==========================================
   // RETURN
@@ -355,10 +616,9 @@ const initFromUser = (inertiaUser: User | null) => {
     isAuthenticated: computed(() => isAuthenticated.value),
     walletAddress: computed(() => user.value?.wallet_address || null),
     isWalletUnlocked: computed(() => isWalletUnlocked.value),
-    isLoading: readonly(isLoading),
-    error: readonly(error),
+    isLoading,
+    error,
     isPasskeySupported,
-    initFromUser,
     
     // Auth
     generateWallet,
@@ -366,80 +626,28 @@ const initFromUser = (inertiaUser: User | null) => {
     login,
     checkSession,
     logout,
+    initFromUser,
     
     // Wallet
     unlockWallet,
     lockWallet,
     signEvent,
-     signTransaction,
-  getPublicKey,
-    // Recovery
+    signTransaction,
+    getPublicKey,
+    
+    // Recovery - file based (nuovo)
+    createRecoveryFile,
+    recoverFromFile,
+    getTempRecoveryCode: () => tempRecoveryCode,
+    getTempPublicKey: () => tempPublicKey,
+    
+    // Recovery - mnemonic based (legacy)
     recoverFromMnemonic,
     getTempMnemonic: () => tempMnemonic,
-    clearTempMnemonic: () => { tempMnemonic = null },
+    
+    // Cleanup
+    clearTempMnemonic: clearTempData,
+    clearTempRecoveryCode: clearTempData,
+    clearTempData,
   }
-}
-
-// ============================================
-// HELPERS (encryption)
-// ============================================
-
-async function encryptPrivateKey(privateKey: Uint8Array, salt: Uint8Array): Promise<string> {
-  const key = await deriveKey(salt)
-  const iv = crypto.getRandomValues(new Uint8Array(12))
-  
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    privateKey
-  )
-
-  // IV + ciphertext
-  const combined = new Uint8Array(iv.length + encrypted.byteLength)
-  combined.set(iv)
-  combined.set(new Uint8Array(encrypted), iv.length)
-  
-  return bufferToBase64(combined)
-}
-
-async function decryptPrivateKey(encryptedBase64: string, salt: Uint8Array): Promise<Uint8Array> {
-  const key = await deriveKey(salt)
-  const combined = base64ToBuffer(encryptedBase64)
-  
-  const iv = combined.slice(0, 12)
-  const ciphertext = combined.slice(12)
-  
-  const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    ciphertext
-  )
-  
-  return new Uint8Array(decrypted)
-}
-
-async function deriveKey(salt: Uint8Array): Promise<CryptoKey> {
-  // Usa un segreto fisso dell'app + salt per utente
-  // In produzione, potresti usare il credential ID della passkey
-  const secret = new TextEncoder().encode('ecothread-wallet-key-v1')
-  
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw', secret, 'PBKDF2', false, ['deriveBits', 'deriveKey']
-  )
-  
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
-    keyMaterial,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  )
-}
-
-function bufferToBase64(buffer: Uint8Array): string {
-  return btoa(String.fromCharCode(...buffer))
-}
-
-function base64ToBuffer(base64: string): Uint8Array {
-  return new Uint8Array(atob(base64).split('').map(c => c.charCodeAt(0)))
 }
