@@ -499,7 +499,7 @@ async function submit() {
 
       try {
 
-        const url = route('events.upload_document', props.productId);
+        const url = route('admin.events.upload_document', props.productId);
 
         const { data: uploadResult } = await api.post(
           url,
@@ -539,7 +539,7 @@ async function submit() {
     }
 
     const { data: draftData } = await api.post(
-      route('events.store', props.productId),
+      route('admin.events.store', props.productId),
       draftFormData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     )
