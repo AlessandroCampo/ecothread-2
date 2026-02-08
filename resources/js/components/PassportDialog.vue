@@ -126,6 +126,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import QRCode from 'qrcode'
 import { route } from 'ziggy-js'
 import { useDisplay } from 'vuetify/lib/composables/display.mjs'
+import { downloadCanvas as downloadCanvasFile } from '@/lib/downloadFile'
 const {mobile} = useDisplay();
 // ============================================
 // Types
@@ -386,19 +387,12 @@ async function downloadQR() {
   if (!verificationUrl.value) return
 
   const qrCanvas = await generateQRWithLogo(verificationUrl.value, 1024)
-  downloadCanvas(qrCanvas, `qr-${passport.value?.passport_number}.png`)
+  await downloadCanvasFile(qrCanvas, `qr-${passport.value?.passport_number}.png`)
 }
 
 async function downloadBadge() {
   const canvas = await generateBadge()
-  downloadCanvas(canvas, `badge-${passport.value?.passport_number}.png`)
-}
-
-function downloadCanvas(canvas: HTMLCanvasElement, filename: string) {
-  const link = document.createElement('a')
-  link.download = filename
-  link.href = canvas.toDataURL('image/png')
-  link.click()
+  await downloadCanvasFile(canvas, `badge-${passport.value?.passport_number}.png`)
 }
 
 // ============================================

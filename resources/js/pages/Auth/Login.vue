@@ -209,6 +209,7 @@ import { router } from '@inertiajs/vue3'
 import { usePasskeyAuth } from '@/composables/usePasskeyAuth'
 import { route } from 'ziggy-js'
 import { useSnack } from '@/composables/useSnack'
+import { downloadBlob } from '@/lib/downloadFile'
 
 const { success: showSuccess, error: showError } = useSnack()
 
@@ -273,12 +274,8 @@ const downloadRecoveryFile = async () => {
   isDownloading.value = true
   try {
     const blob = await createRecoveryFile(form.value.name)
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${form.value.name.replace(/\s+/g, '-').toLowerCase()}.ecothread`
-    a.click()
-    URL.revokeObjectURL(url)
+    const filename = `${form.value.name.replace(/\s+/g, '-').toLowerCase()}.ecothread`
+    await downloadBlob(blob, filename)
     fileDownloaded.value = true
     showSuccess('File scaricato!')
   } catch (e: any) {

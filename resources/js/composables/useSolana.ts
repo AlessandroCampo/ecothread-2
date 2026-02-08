@@ -39,6 +39,7 @@ export function useSolana() {
   const error = ref<string | null>(null)
   const lastTxSignature = ref<string | null>(null)
   const feePayerPublicKey = ref<string | null>(null)
+  const isReady = ref(false)
 
   // ============================================
   // Passkey Auth
@@ -405,6 +406,29 @@ export function useSolana() {
     }
   }
 
+  const whenReady = async (): Promise<void> => {
+  // Verifica che la connessione Solana sia attiva
+  try {
+    await connection.getLatestBlockhash()
+    isReady.value = true
+  } catch (e) {
+    console.warn('Solana connection not ready:', e)
+    // Riprova con endpoint fallback
+    for (const endpoint of RPC_ENDPOINTS.slice(1)) {
+      try {
+        const fallbackConnection = new Connection(endpoint, 'confirmed')
+        await fallbackConnection.getLatestBlockhash()
+        isReady.value = true
+        return
+      } catch {
+        continue
+      }
+    }
+    throw new Error('Impossibile connettersi a Solana')
+  }
+}
+
+
   // ============================================
   // Error Parser
   // ============================================
@@ -472,5 +496,7 @@ export function useSolana() {
     // Explorer URLs
     getTxExplorerUrl,
     getAddressExplorerUrl,
+    isReady,
+  whenReady,
   }
 }
