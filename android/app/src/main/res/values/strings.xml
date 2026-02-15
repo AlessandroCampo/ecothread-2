@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ecothread</string>
+    <string name="title_activity_main">Ecothread</string>
+    <string name="package_name">com.ecothread.app</string>
+    <string name="custom_url_scheme">com.ecothread.app</string>
+</resources>
