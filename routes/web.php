@@ -17,6 +17,14 @@ Route::get('/.well-known/assetlinks.json', function () {
     ]);
 });
 
+Route::get('/debug-webauthn', function () {
+    return response()->json([
+        'rpId' => config('webauthn.relying_party.id'),
+        'origins' => config('webauthn.origins'),
+        'env_origins' => env('WEBAUTHN_ORIGINS'),
+    ]);
+});
+
 // ============================================
 // PUBLIC PAGES
 // ============================================
