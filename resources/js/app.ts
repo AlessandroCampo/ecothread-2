@@ -11,7 +11,7 @@ import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom'
 import 'solana-wallets-vue/styles.css'
 
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = 'Ecothread';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

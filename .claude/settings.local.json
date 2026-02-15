@@ -11,7 +11,14 @@
       "Bash(npx cap run android:*)",
       "Bash(powershell -Command:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(ren:*)",
+      "Bash(ren \"android\\\\app\\\\src\\\\main\\\\res\\\\mipmap-mdpi\\\\Ecothread_monochrome.png\" \"ic_launcher_monochrome.png\")",
+      "Bash(ren \"android\\\\app\\\\src\\\\main\\\\res\\\\mipmap-xhdpi\\\\Ecothread_foreground.png\" \"ic_launcher_foreground.png\")",
+      "Bash(ren \"android\\\\app\\\\src\\\\main\\\\res\\\\mipmap-xhdpi\\\\Ecothread_monochrome.png\" \"ic_launcher_monochrome.png\")",
+      "Bash(ren \"android\\\\app\\\\src\\\\main\\\\res\\\\mipmap-xxhdpi\\\\Ecothread_monochrome.png\" \"ic_launcher_monochrome.png\")",
+      "Bash(ren \"android\\\\app\\\\src\\\\main\\\\res\\\\mipmap-xxxhdpi\\\\Ecothread_monochrome.png\" \"ic_launcher_monochrome.png\")",
+      "Bash(keytool:*)"
     ]
   }
 }

@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'EcoThread',
   webDir: 'dist',
   server: {
-    url: 'https://ecothread-2-production.up.railway.app',
+    url: 'https://ecothread.up.railway.app',
     cleartext: true,
   },
   plugins: {

@@ -16,10 +16,14 @@ export async function downloadBlob(blob: Blob, filename: string): Promise<void> 
       directory: Directory.Cache,
     })
 
-    await Share.share({
-      title: filename,
-      url: result.uri,
-    })
+    try {
+      await Share.share({
+        title: filename,
+        url: result.uri,
+      })
+    } catch {
+      // User dismissed share sheet — file is already saved
+    }
   } else {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -44,10 +48,14 @@ export async function downloadCanvas(canvas: HTMLCanvasElement, filename: string
       directory: Directory.Cache,
     })
 
-    await Share.share({
-      title: filename,
-      url: result.uri,
-    })
+    try {
+      await Share.share({
+        title: filename,
+        url: result.uri,
+      })
+    } catch {
+      // User dismissed share sheet — file is already saved
+    }
   } else {
     const link = document.createElement('a')
     link.download = filename
