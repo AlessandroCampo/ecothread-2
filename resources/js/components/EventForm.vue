@@ -46,6 +46,9 @@
   :disabled="!isWalletConnected"
   :error-messages="errors.event_type"
 >
+
+
+        
   <template #item="{ item, props }">
     <v-list-subheader v-if="item.raw.header">
       {{ item.raw.header }}
@@ -82,6 +85,56 @@
     {{ item.raw.label }}
   </template>
 </v-select>
+
+<!-- Document Upload -->
+       <!-- Document Upload + AI Extraction -->
+<v-card variant="outlined" class="mb-6 pa-3" :class="{ 'border-primary': form.document }">
+  <div class="text-body-2 font-weight-bold mb-3 d-flex align-center ga-2">
+    <v-icon size="small">mdi-file-document</v-icon>
+    Documento di supporto
+    <v-chip size="x-small" color="primary" variant="tonal">
+      <v-icon start size="x-small">mdi-creation</v-icon>
+      AI
+    </v-chip>
+  </div>
+
+  <v-file-input
+    v-model="form.document"
+    label="Carica PDF o immagine"
+    variant="outlined"
+    density="compact"
+    prepend-icon=""
+    prepend-inner-icon="mdi-paperclip"
+    accept=".pdf,.jpg,.jpeg,.png"
+    :disabled="!canUploadDoc"
+    :hint="!form.event_type ? 'Seleziona prima il tipo di evento' : 'PDF, JPG o PNG · max 5MB'"
+    persistent-hint
+    hide-details="auto"
+    @update:model-value="onDocumentChange"
+  />
+
+  <!-- Bottone estrazione — visibile solo se file + event_type -->
+  <v-expand-transition>
+    <div v-if="form.document && form.event_type" class="mt-3">
+      <v-btn
+        :loading="extracting"
+        :disabled="extracting"
+        color="primary"
+        variant="tonal"
+        block
+        prepend-icon="mdi-creation"
+        @click="analyzeDocument"
+      >
+        {{ extracting ? 'Estrazione in corso...' : 'Estrai dati con AI' }}
+        
+      </v-btn>
+
+      <div class="text-caption text-medium-emphasis text-center mt-1">
+        I campi del form verranno pre-compilati automaticamente
+      </div>
+    </div>
+  </v-expand-transition>
+</v-card>
 
  <!-- Description / Notes -->
         <v-textarea
@@ -120,33 +173,52 @@
           </template>
         </v-select>
   
-       
-  
-       
-  
-        <!-- Document Upload -->
-        <v-file-input
-          v-model="form.document"
-          label="Documento di supporto"
-          variant="outlined"
-          prepend-icon="mdi-file-document"
-          accept=".pdf,.jpg,.jpeg,.png"
-          class="mb-3"
-          :disabled="!isWalletConnected"
-          hint="PDF o immagine del certificato/report"
-          persistent-hint
-          @update:model-value="onDocumentChange"
-        />
 
          <v-divider v-if="form.event_type" class="my-4" />
   
+  <!-- Banner estrazione AI — sopra l'event-metadata-form -->
+<v-expand-transition>
+  <v-alert
+    v-if="extracting"
+    color="primary"
+    variant="tonal"
+    density="compact"
+    class="mb-4"
+  >
+    <template #prepend>
+      <v-progress-circular indeterminate size="18" width="2" color="primary" />
+    </template>
+    <div class="text-body-2">
+      <strong>Analisi AI in corso...</strong> Estrazione dati dal documento.
+    </div>
+  </v-alert>
+</v-expand-transition>
+
+<v-divider v-if="form.event_type" class="my-4" />
+
+<!-- Overlay sul metadata form durante estrazione -->
+<div style="position: relative;">
+  <v-overlay
+    :model-value="extracting"
+    contained
+    class="align-center justify-center rounded"
+    style="backdrop-filter: blur(2px);"
+  >
+    <div class="d-flex flex-column align-center ga-2">
+      <v-progress-circular indeterminate color="primary" size="40" />
+      <span class="text-body-2 text-primary font-weight-medium">
+        Analisi documento...
+      </span>
+    </div>
+  </v-overlay>
+
   <event-metadata-form
     :event-type="form.event_type"
     :metadata="form.metadata"
-    :disabled="!isWalletConnected"
-      :errors="errors"
-
+    :disabled="!isWalletConnected || extracting"
+    :errors="errors"
   />
+</div>
 
           <v-expand-transition>
         <v-alert 
@@ -362,6 +434,10 @@ const form = ref({
   metadata: {} as Record<string, any>
 })
 
+const canUploadDoc = computed(() => {
+ return isWalletConnected.value && form.value.event_type;
+})
+
 const result = ref<{
   txSignature: string
   pdaAddress: string
@@ -405,11 +481,31 @@ const isValid = computed(() => {
   return form.value.product_id && form.value.event_type && confirmedImmutability.value
 })
 
-const explorerUrl = computed(() => {
-  if (!result.value?.txSignature) return '#'
-  return getTxExplorerUrl(result.value.txSignature)
-})
 
+const extracting = ref(false);
+
+const analyzeDocument = async () => {
+  if(extracting.value) return;
+  extracting.value = true;
+  try {
+    const url = route('admin.document.analyze');
+    
+    const formData = new FormData();
+    formData.append('document', form.value.document!); 
+    formData.append('event_type', form.value.event_type!);
+    
+    const { data } = await api.post(url, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    
+    form.value.metadata = data;
+      
+  } catch (error) {
+      console.error('Errore analisi documento:', error);
+  } finally {
+    extracting.value = false;
+  }
+  }
 // ============================================
 // Methods
 // ============================================
@@ -425,6 +521,11 @@ async function onDocumentChange(file: File | null) {
       console.error('Error calculating hash:', e)
       documentHash.value = null
     }
+
+      await analyzeDocument();
+
+
+
   } else {
     documentHash.value = null
   }

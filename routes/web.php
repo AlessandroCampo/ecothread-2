@@ -61,6 +61,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('/events/{id}/confirm', [EventController::class, 'confirm'])->name('events.confirm');
         Route::delete('/events/{id}', [EventController::class, 'destroy'])->name('events.destroy');
         Route::get('/products/{productId}/events/{index}/download', [EventController::class, 'downloadDocument'])->name('events.download');
+        Route::post('/analyze-document', [EventController::class, 'analyzeDocument'])->name('document.analyze');
+
     });
 
     // Passports
@@ -70,6 +72,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/products/{productId}/passport', [PassportController::class, 'request'])->name('request');
         Route::get('/products/{productId}/eligibility', [PassportController::class, 'checkEligibility'])->name('check-eligibility');
     });
+
 });
 
 require __DIR__.'/auth.php';

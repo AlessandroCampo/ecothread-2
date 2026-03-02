@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Enums\EventType;
 use App\Models\Event;
 use App\Models\Product;
+use App\Services\ClaudeExtractorService;
 use App\Services\PinataService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class EventController extends Controller
 {
@@ -45,6 +47,32 @@ class EventController extends Controller
             'success' => false,
             'error' => $result['error'] ?? 'Upload failed',
         ], 500);
+    }
+
+   public function analyzeDocument(Request $request): JsonResponse
+    {
+        $request->validate([
+            'document'   => 'required|file|mimes:pdf,jpg,jpeg,png,webp|max:5120',
+            'event_type' => 'required|string|in:ORIGIN,PRODUCTION,TRANSPORT,PACKAGING,RECYCLE,CERTIFICATION,ENV_CLAIM,CUSTOM',
+        ], [
+            'document.required'   => 'Il documento è obbligatorio.',
+            'document.file'       => 'Il documento deve essere un file valido.',
+            'document.mimes'      => 'Formato non supportato. Usa PDF, JPG, PNG o WebP.',
+            'document.max'        => 'Il documento non può superare 5MB.',
+            'event_type.required' => 'Il tipo di evento è obbligatorio.',
+            'event_type.in'       => 'Tipo di evento non valido.',
+        ]);
+
+        $bytes    = file_get_contents($request->file('document')->getRealPath());
+        $mimeType = $request->file('document')->getMimeType();
+        
+        $result = app(ClaudeExtractorService::class)->extractFromBytes(
+            $bytes,
+            $mimeType,
+            $request->event_type
+        );
+
+        return response()->json($result['extracted'] ?? []);
     }
 
     /**

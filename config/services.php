@@ -34,6 +34,14 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+   'aws' => [
+        'key'    => env('AWS_ACCESS_KEY_ID'),
+        'secret' => env('AWS_SECRET_ACCESS_KEY'),
+        'region' => env('AWS_DEFAULT_REGION', 'eu-west-1'),
+     ],
+     'claude' => [
+        'api_key' => env('CLAUDE_API_KEY'),
+     ],
     'pinata' => [
     'api_key' => env('PINATA_API_KEY'),
     'secret_key' => env('PINATA_SECRET_KEY'),
