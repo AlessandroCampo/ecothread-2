@@ -521,11 +521,6 @@ async function onDocumentChange(file: File | null) {
       console.error('Error calculating hash:', e)
       documentHash.value = null
     }
-
-      await analyzeDocument();
-
-
-
   } else {
     documentHash.value = null
   }
